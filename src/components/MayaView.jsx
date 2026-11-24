@@ -582,17 +582,6 @@ export default function MayaView({
             <button
               type="button"
               role="radio"
-              aria-checked={mode === '20min'}
-              onClick={() => onModeChange?.('20min')}
-              className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
-                mode === '20min' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
-              }`}
-            >
-              20 min
-            </button>
-            <button
-              type="button"
-              role="radio"
               aria-checked={mode === '2min'}
               onClick={() => onModeChange?.('2min')}
               className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
@@ -600,6 +589,17 @@ export default function MayaView({
               }`}
             >
               2 min
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === '20min'}
+              onClick={() => onModeChange?.('20min')}
+              className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
+                mode === '20min' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
+              }`}
+            >
+              20 min
             </button>
           </div>
           <AccessibilityMenu
