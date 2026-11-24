@@ -25,7 +25,7 @@ function formatProgress(sum) {
   if (sum.complete) {
     return `Batch review complete · ${sum.accepted} accepted · ${sum.rework} sent for rework`
   }
-  return `${sum.unresolved} unresolved · ${sum.awaiting} awaiting decision · ${sum.engineer} awaiting engineer · ${sum.accepted} accepted · ${sum.rework} rework`
+  return `${sum.unresolved} pending · ${sum.awaiting} awaiting decision · ${sum.engineer} awaiting engineer`
 }
 
 export default function App() {

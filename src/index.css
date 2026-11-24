@@ -10,6 +10,9 @@
   --color-hold: #b91c1c;
   --color-hold-bg: #fee2e2;
   --color-hold-band: #fca5a5;
+  --color-engineer: #1d4ed8;
+  --color-engineer-bg: #dbeafe;
+  --color-engineer-band: #93c5fd;
   --color-ink: #0f172a;
   --color-muted: #475569;
   --color-line: #cbd5e1;
@@ -43,6 +46,16 @@ button {
   outline-offset: 2px;
 }
 
+/* Display toggles: On fill must stay distinct from keyboard focus ring. */
+.display-toggle:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 3px;
+}
+
+html.high-contrast .display-toggle:focus-visible {
+  outline-color: #f59e0b;
+}
+
 html.large-text {
   font-size: 112.5%;
 }
@@ -54,6 +67,9 @@ html.high-contrast {
   --color-look-bg: #fde68a;
   --color-hold: #7f1d1d;
   --color-hold-bg: #fecaca;
+  --color-engineer: #1e3a8a;
+  --color-engineer-bg: #bfdbfe;
+  --color-engineer-band: #60a5fa;
   --color-ink: #000000;
   --color-muted: #1e293b;
   --color-line: #334155;

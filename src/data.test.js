@@ -4,6 +4,7 @@ import {
   PROPERTY_ORDER,
   SAMPLES,
   DECISION,
+  VISUAL_META,
   classifyProperty,
   classifyVisual,
   formatValue,
@@ -92,7 +93,15 @@ describe('suggestions', () => {
 
   it('uses short actionable reasons for engineer/rework', () => {
     expect(SAMPLES.find((s) => s.id === 201).suggestion.reason).toMatch(/Porosity near limit/i)
-    expect(SAMPLES.find((s) => s.id === 203).suggestion.reason).toMatch(/Mass loading/i)
+    expect(SAMPLES.find((s) => s.id === 203).suggestion.reason).toMatch(/Mass loading above limit/i)
+    expect(SAMPLES.find((s) => s.id === 204).suggestion.reason).toMatch(/Porosity above limit/i)
+  })
+
+  it('uses above/below limit visual labels', () => {
+    expect(VISUAL_META.high.label).toBe('Above limit')
+    expect(VISUAL_META.high.symbol).toBe('↑')
+    expect(VISUAL_META.low.label).toBe('Below limit')
+    expect(VISUAL_META.low.symbol).toBe('↓')
   })
 
   it('exposes #205 mass precision that crosses 14.5', () => {

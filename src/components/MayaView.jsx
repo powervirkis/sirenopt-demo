@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react'
 import {
   BATCH,
   DECISION,
@@ -10,6 +11,7 @@ import {
   getDecision,
   summarizeDecisions,
 } from '../data'
+import DisplayToggle from './DisplayToggle'
 
 function MeasurementKey() {
   return (
@@ -23,14 +25,15 @@ function MeasurementKey() {
 function StatusIcon({ visual }) {
   const meta = VISUAL_META[visual] || VISUAL_META.unavailable
   return (
-    <span className={`inline-flex items-center gap-1 font-semibold ${meta.className}`}>
-      <span
-        className="inline-flex h-6 min-w-6 items-center justify-center text-base leading-none"
-        aria-hidden="true"
-      >
+    <span className={`inline-flex max-w-[9.5rem] flex-wrap items-baseline gap-x-1 font-semibold ${meta.className}`}>
+      <span className="text-base leading-none" aria-hidden="true">
         {meta.symbol}
       </span>
-      {meta.label ? <span aria-hidden="true">{meta.label}</span> : null}
+      {meta.label ? (
+        <span className="text-sm leading-snug" aria-hidden="true">
+          {meta.label}
+        </span>
+      ) : null}
     </span>
   )
 }
@@ -117,9 +120,11 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
       className="decision-actions grid grid-cols-2 gap-2"
       role="group"
       aria-label={`Decision for sample #${sample.id}`}
+      data-sample-actions={sample.id}
     >
       <button
         type="button"
+        data-action="accept"
         aria-pressed={acceptActive}
         aria-label={`Accept sample #${sample.id}`}
         onClick={() => onAccept(sample.id)}
@@ -136,6 +141,7 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
       </button>
       <button
         type="button"
+        data-action="rework"
         aria-pressed={reworkActive}
         aria-label={`Send sample #${sample.id} for rework`}
         onClick={() => onRework(sample.id)}
@@ -152,15 +158,16 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
       </button>
       <button
         type="button"
+        data-action="engineer"
         aria-pressed={engineerActive}
         aria-label={`Send sample #${sample.id} to engineer`}
         onClick={() => onEngineer(sample.id)}
         className={`${base} col-span-2 ${emphasize('engineer', engineerActive)} ${
           engineerActive
-            ? 'bg-look text-white ring-2 ring-look ring-offset-2'
+            ? 'bg-engineer text-white ring-2 ring-engineer ring-offset-2'
             : suggested === 'engineer'
-              ? 'border-2 border-look bg-look-bg text-look ring-look'
-              : 'border-2 border-look text-look hover:bg-look-bg'
+              ? 'border-2 border-engineer bg-engineer-bg text-engineer ring-engineer'
+              : 'border-2 border-engineer text-engineer hover:bg-engineer-bg'
         }`}
       >
         {suggestedBadge('engineer')}
@@ -171,10 +178,12 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
 }
 
 function SampleCard({ sample, decision, onAccept, onRework, onEngineer }) {
+  const decisionMeta = DECISION_META[decision]
   return (
     <article
       className="rounded-xl border border-line bg-panel p-3.5 shadow-sm sm:p-4"
       aria-labelledby={`sample-${sample.id}-title`}
+      data-sample-card={sample.id}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
         <h2
@@ -182,10 +191,10 @@ function SampleCard({ sample, decision, onAccept, onRework, onEngineer }) {
           className="text-xl font-bold tabular-nums text-ink"
         >
           #{sample.id}
-          <span className="sr-only"> — {DECISION_META[decision].label}</span>
+          <span className="sr-only"> — {decisionMeta.label}</span>
         </h2>
-        <p className="text-sm font-semibold text-ink" aria-hidden="true">
-          {DECISION_META[decision].label}
+        <p className={`text-sm font-semibold ${decisionMeta.className}`} aria-hidden="true">
+          {decisionMeta.label}
         </p>
       </div>
 
@@ -239,6 +248,14 @@ function ProgressSummary({ counts }) {
   )
 }
 
+function isPendingDecision(decision) {
+  return decision === DECISION.awaiting || decision === DECISION.engineer
+}
+
+function isCompletedDecision(decision) {
+  return decision === DECISION.accepted || decision === DECISION.rework
+}
+
 export default function MayaView({
   samples,
   decisions,
@@ -252,6 +269,58 @@ export default function MayaView({
   onToggleHighContrast,
 }) {
   const counts = summarizeDecisions(samples, decisions)
+  const pending = samples.filter((s) => isPendingDecision(getDecision(decisions, s.id)))
+  const completed = samples.filter((s) => isCompletedDecision(getDecision(decisions, s.id)))
+  const focusPlanRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const plan = focusPlanRef.current
+    if (!plan) return
+    focusPlanRef.current = null
+
+    const focusEl = (el) => {
+      if (el && typeof el.focus === 'function') {
+        el.focus({ preventScroll: true })
+      }
+    }
+
+    if (plan.kind === 'stay-engineer') {
+      focusEl(
+        document.querySelector(
+          `[data-sample-actions="${plan.sampleId}"] [data-action="engineer"]`,
+        ),
+      )
+      return
+    }
+
+    if (plan.kind === 'after-complete') {
+      const nextPending = samples.filter((s) => isPendingDecision(getDecision(decisions, s.id)))
+      const after = nextPending.find((s) => s.id > plan.sampleId)
+      const target = after || nextPending[0]
+      if (target) {
+        focusEl(
+          document.querySelector(`[data-sample-actions="${target.id}"] [data-action="accept"]`),
+        )
+      } else {
+        focusEl(document.querySelector('[data-testid="batch-complete-message"]'))
+      }
+    }
+  }, [decisions, samples])
+
+  const handleAccept = (id) => {
+    focusPlanRef.current = { kind: 'after-complete', sampleId: id }
+    onAccept(id)
+  }
+
+  const handleRework = (id) => {
+    focusPlanRef.current = { kind: 'after-complete', sampleId: id }
+    onRework(id)
+  }
+
+  const handleEngineer = (id) => {
+    focusPlanRef.current = { kind: 'stay-engineer', sampleId: id }
+    onEngineer(id)
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 pb-16 sm:p-6">
@@ -267,22 +336,16 @@ export default function MayaView({
           <MeasurementKey />
         </div>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Display">
-          <button
-            type="button"
-            aria-pressed={largeText}
+          <DisplayToggle
+            label="Large text"
+            pressed={largeText}
             onClick={onToggleLargeText}
-            className="min-h-12 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
-          >
-            Large text
-          </button>
-          <button
-            type="button"
-            aria-pressed={highContrast}
+          />
+          <DisplayToggle
+            label="High contrast"
+            pressed={highContrast}
             onClick={onToggleHighContrast}
-            className="min-h-12 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
-          >
-            High contrast
-          </button>
+          />
         </div>
       </header>
 
@@ -294,22 +357,64 @@ export default function MayaView({
         </p>
       ) : null}
 
-      <ul className="space-y-3">
-        {samples.map((sample) => {
-          const decision = getDecision(decisions, sample.id)
-          return (
-            <li key={sample.id}>
-              <SampleCard
-                sample={sample}
-                decision={decision}
-                onAccept={onAccept}
-                onRework={onRework}
-                onEngineer={onEngineer}
-              />
-            </li>
-          )
-        })}
-      </ul>
+      <section aria-labelledby="pending-heading" data-testid="pending-section">
+        <h2 id="pending-heading" className="text-lg font-bold text-ink">
+          Pending decisions ({pending.length})
+        </h2>
+        {pending.length === 0 ? (
+          <p
+            className="mt-3 rounded-xl border border-pass/40 bg-pass-bg px-4 py-3 text-base font-medium text-pass"
+            tabIndex={-1}
+            data-testid="batch-complete-message"
+          >
+            All samples decided. Batch review complete.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {pending.map((sample) => {
+              const decision = getDecision(decisions, sample.id)
+              return (
+                <li key={sample.id}>
+                  <SampleCard
+                    sample={sample}
+                    decision={decision}
+                    onAccept={handleAccept}
+                    onRework={handleRework}
+                    onEngineer={handleEngineer}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+
+      {completed.length > 0 ? (
+        <>
+          <hr className="border-t-2 border-line" data-testid="decisions-separator" />
+          <section aria-labelledby="completed-heading" data-testid="completed-section">
+            <h2 id="completed-heading" className="text-lg font-bold text-ink">
+              Decisions made ({completed.length})
+            </h2>
+            <ul className="mt-3 space-y-3">
+              {completed.map((sample) => {
+                const decision = getDecision(decisions, sample.id)
+                return (
+                  <li key={sample.id}>
+                    <SampleCard
+                      sample={sample}
+                      decision={decision}
+                      onAccept={handleAccept}
+                      onRework={handleRework}
+                      onEngineer={handleEngineer}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        </>
+      ) : null}
     </div>
   )
 }

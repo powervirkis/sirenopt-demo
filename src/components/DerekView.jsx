@@ -10,6 +10,7 @@ import {
   formatValue,
   getDecision,
 } from '../data'
+import DisplayToggle from './DisplayToggle'
 import SpecBar, { ChartLegend } from './SpecBar'
 
 function RescanRuler({ sample, propertyKey }) {
@@ -227,22 +228,12 @@ export default function DerekView({
           </p>
         </div>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Display">
-          <button
-            type="button"
-            aria-pressed={largeText}
-            onClick={onToggleLargeText}
-            className="min-h-12 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
-          >
-            Large text
-          </button>
-          <button
-            type="button"
-            aria-pressed={highContrast}
+          <DisplayToggle label="Large text" pressed={largeText} onClick={onToggleLargeText} />
+          <DisplayToggle
+            label="High contrast"
+            pressed={highContrast}
             onClick={onToggleHighContrast}
-            className="min-h-12 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
-          >
-            High contrast
-          </button>
+          />
         </div>
       </header>
 
@@ -265,7 +256,7 @@ export default function DerekView({
                 selected
                   ? 'bg-ink text-white'
                   : pending
-                    ? 'border-2 border-look bg-look-bg text-look'
+                    ? 'border-2 border-engineer bg-engineer-bg text-engineer'
                     : 'border border-line text-ink hover:bg-surface'
               }`}
             >
@@ -295,13 +286,18 @@ export default function DerekView({
               ) : null}
             </p>
             {pendingEngineer ? (
-              <p className="mt-2 text-sm font-semibold text-look" data-testid="escalation-banner">
+              <p
+                className="mt-2 text-sm font-semibold text-engineer"
+                data-testid="escalation-banner"
+              >
                 Pending engineer review
                 {escalation?.reason ? ` — ${escalation.reason}` : ''}
               </p>
             ) : null}
           </div>
-          <p className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink">
+          <p
+            className={`rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold ${DECISION_META[decision].className}`}
+          >
             Maya: {DECISION_META[decision].label}
           </p>
         </div>

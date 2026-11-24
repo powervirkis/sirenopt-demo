@@ -195,10 +195,10 @@ export const DECISION = {
 }
 
 export const DECISION_META = {
-  awaiting: { label: 'Awaiting decision', short: 'Awaiting' },
-  accepted: { label: 'Accepted', short: 'Accepted' },
-  rework: { label: 'Sent for rework', short: 'Rework' },
-  engineer: { label: 'Awaiting engineer', short: 'Engineer' },
+  awaiting: { label: 'Awaiting decision', short: 'Awaiting', className: 'text-ink' },
+  accepted: { label: 'Accepted', short: 'Accepted', className: 'text-pass' },
+  rework: { label: 'Sent for rework', short: 'Rework', className: 'text-hold' },
+  engineer: { label: 'Awaiting engineer', short: 'Engineer', className: 'text-engineer' },
 }
 
 export const SUGGESTION_META = {
@@ -215,10 +215,10 @@ export const SUGGESTION_META = {
     className: 'text-hold',
   },
   engineer: {
-    symbol: '!',
+    symbol: '↗',
     label: 'Send to engineer suggested',
     action: 'engineer',
-    className: 'text-look',
+    className: 'text-engineer',
   },
 }
 
@@ -226,8 +226,18 @@ export const SUGGESTION_META = {
 export const VISUAL_META = {
   ok: { symbol: '✓', label: '', className: 'text-pass', meaning: 'within limits' },
   near: { symbol: '!', label: 'Near limit', className: 'text-look', meaning: 'near limit' },
-  high: { symbol: '×', label: 'High', className: 'text-hold', meaning: 'high' },
-  low: { symbol: '×', label: 'Low', className: 'text-hold', meaning: 'low' },
+  high: {
+    symbol: '↑',
+    label: 'Above limit',
+    className: 'text-hold',
+    meaning: 'above limit',
+  },
+  low: {
+    symbol: '↓',
+    label: 'Below limit',
+    className: 'text-hold',
+    meaning: 'below limit',
+  },
   unavailable: {
     symbol: '—',
     label: 'Unavailable',
@@ -262,7 +272,7 @@ export function classifyProperty(propertyKey, value, ticks) {
 
 /**
  * Maya row icon status from point estimate + interval.
- * Red High/Low follows the point estimate; amber Near limit is in-spec point
+ * Above/Below limit follows the point estimate; amber Near limit is in-spec point
  * with interval past a boundary; green only when point and full interval are in.
  */
 export function classifyVisual(propertyKey, value, ticks) {
@@ -312,7 +322,7 @@ export function propertyExplanation(propertyKey, status, value, band) {
       return {
         status: 'fail',
         reason: short,
-        shortReason: `${p.label} high.`,
+        shortReason: `${p.label} above limit.`,
         text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Entire range above upper limit.`,
       }
     }
@@ -324,7 +334,7 @@ export function propertyExplanation(propertyKey, status, value, band) {
     return {
       status: 'fail',
       reason: short,
-      shortReason: `${p.label} low.`,
+      shortReason: `${p.label} below limit.`,
       text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Entire range below lower limit.`,
     }
   }
@@ -410,8 +420,8 @@ function buildSuggestion(propertyStatus, explanations, visualStatus) {
   const visual = visualStatus[key]
   let reason = explanations[key]?.shortReason || ''
   if (visual === 'near') reason = `${PROPERTIES[key].label} near limit.`
-  else if (visual === 'high') reason = `${PROPERTIES[key].label} high.`
-  else if (visual === 'low') reason = `${PROPERTIES[key].label} low.`
+  else if (visual === 'high') reason = `${PROPERTIES[key].label} above limit.`
+  else if (visual === 'low') reason = `${PROPERTIES[key].label} below limit.`
   else if (visual === 'unavailable') reason = `${PROPERTIES[key].label} unavailable.`
 
   return {
@@ -566,9 +576,9 @@ export const PRESENTER_NOTES = {
   illustrativeData:
     'Point estimates and specification limits come from the exercise. Uncertainty ranges (REPEAT_TICKS) and lab-coupon scatters are illustrative demo inputs, not production measurements.',
   intervalRule:
-    'Proposed prototype rules (validate with quality): inclusive specs. Entirely outside interval → Send for rework suggested; all three entirely inside → Accept suggested; otherwise (boundary overlap or missing evidence) → Send to engineer suggested. An outside interval beats engineer. Missing evidence blocks Accept. Point-estimate icons (High/Low/Near limit/✓) are separate from the sample suggestion. Suggestions never auto-record Maya’s decision.',
+    'Proposed prototype rules (validate with quality): inclusive specs. Entirely outside interval → Send for rework suggested; all three entirely inside → Accept suggested; otherwise (boundary overlap or missing evidence) → Send to engineer suggested. An outside interval beats engineer. Missing evidence blocks Accept. Point-estimate icons (Above/Below limit, Near limit, ✓) are separate from the sample suggestion. Suggestions never auto-record Maya’s decision.',
   boundaryCases:
-    '#203 mass 15.50–15.70 includes the upper boundary and extends above it → red High on the point, Send to engineer suggested. #205 mass 14.48–14.65 crosses 14.5 (two decimals in Derek). A valid interval that only touches a boundary from inside remains eligible for Accept.',
+    '#203 mass 15.50–15.70 includes the upper boundary and extends above it → Above limit on the point, Send to engineer suggested. #205 mass 14.48–14.65 crosses 14.5 (two decimals in Derek). A valid interval that only touches a boundary from inside remains eligible for Accept.',
   escalation:
     'Send to engineer sets Awaiting engineer (unresolved). One in-app escalation record per sample; no email/Slack. Engineer review does not auto accept/rework. Batch completes only when every sample is Accepted or Sent for rework.',
   timeComparison:
