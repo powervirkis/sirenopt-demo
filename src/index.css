@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  --color-pass: #15803d;
+  --color-pass-bg: #dcfce7;
+  --color-pass-band: #86efac;
+  --color-look: #b45309;
+  --color-look-bg: #fef3c7;
+  --color-look-band: #fcd34d;
+  --color-hold: #b91c1c;
+  --color-hold-bg: #fee2e2;
+  --color-hold-band: #fca5a5;
+  --color-ink: #0f172a;
+  --color-muted: #475569;
+  --color-line: #cbd5e1;
+  --color-surface: #f8fafc;
+  --color-panel: #ffffff;
+  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slide-in 200ms ease-out;
+}
+
+.fade-in {
+  animation: fade-in 150ms ease-out;
+}
+
+.toast-in {
+  animation: toast-in 180ms ease-out;
+}
