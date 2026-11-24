@@ -52,45 +52,40 @@ function RescanRuler({ sample, propertyKey }) {
         Measurement repeatability under the current setup
       </h3>
       <p className="mt-2 text-base leading-relaxed text-muted">
-        These ticks are successive plasma passes on the same coupon. Repeat scans assess measurement
-        stability under the current setup. Controlled averaging of independent repeats can reduce
-        random uncertainty; it does not by itself prove accuracy against a laboratory reference.
+        The bar is the spread of successive plasma passes on the same coupon. The mark is the
+        reported point. Repeat scans assess measurement stability under the current setup.
+        Controlled averaging of independent repeats can reduce random uncertainty; it does not by
+        itself prove accuracy against a laboratory reference.
       </p>
       <div className="mt-4 rounded-lg bg-surface p-4">
         <div
-          className="relative h-16 w-full"
+          className="relative h-14 w-full"
           role="img"
           aria-label={sample.explanations[propertyKey].text}
         >
           <div
-            className="absolute top-6 h-4 rounded-sm bg-emerald-100"
+            className="absolute top-5 h-4 rounded-sm bg-emerald-100"
             style={{ left: `${toPct(p.min)}%`, width: `${toPct(p.max) - toPct(p.min)}%` }}
           />
           <div
-            className="absolute top-2 bottom-2 w-0.5 bg-slate-800"
+            className="absolute top-3 bottom-3 w-0.5 bg-slate-800"
             style={{ left: `${toPct(p.min)}%` }}
           />
           <div
-            className="absolute top-2 bottom-2 w-0.5 bg-slate-800"
+            className="absolute top-3 bottom-3 w-0.5 bg-slate-800"
             style={{ left: `${toPct(p.max)}%` }}
           />
           <div
-            className={`absolute top-5 h-6 rounded-sm border border-current/30 ${meta.band}`}
+            className={`absolute top-4 h-6 rounded-sm border border-current/40 ${meta.band}`}
             style={{
               left: `${toPct(low)}%`,
-              width: `${Math.max(toPct(high) - toPct(low), 1)}%`,
+              width: `${Math.max(toPct(high) - toPct(low), 1.25)}%`,
             }}
           />
-          {ticks.map((t, i) => (
-            <div
-              key={`${t}-${i}`}
-              className="absolute top-3 flex flex-col items-center"
-              style={{ left: `${toPct(t)}%`, transform: 'translateX(-50%)' }}
-            >
-              <div className={`h-10 w-0.5 ${meta.bar}`} />
-              <div className={`h-2.5 w-2.5 rounded-full ${meta.bar}`} />
-            </div>
-          ))}
+          <div
+            className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white ${meta.bar}`}
+            style={{ left: `${toPct(value)}%` }}
+          />
         </div>
         <p className="mt-3 text-base text-ink">
           Point {formatValue(propertyKey, value)} {p.unit} · Range{' '}
