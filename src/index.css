@@ -135,10 +135,18 @@ html.large-text .decision-actions > button {
   animation: fade-in 150ms ease-out;
 }
 
+.sample-list-item {
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .slide-in,
   .fade-in {
     animation: none;
+  }
+
+  .sample-list-item {
+    will-change: auto;
   }
 }
 

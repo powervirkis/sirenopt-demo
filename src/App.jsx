@@ -4,6 +4,7 @@ import MayaView from './components/MayaView'
 import {
   SAMPLES,
   setDecision,
+  clearDecision,
   summarizeDecisions,
   recordEscalation,
   DECISION,
@@ -84,6 +85,17 @@ export default function App() {
     setDerekSampleId(id)
   }
 
+  const handleRevert = (id) => {
+    setDecisions((prev) => {
+      const next = clearDecision(prev, id)
+      if (next === prev) return prev
+      announce(
+        `Sample #${id} decision reverted. ${formatProgress(summarizeDecisions(SAMPLES, next))}`,
+      )
+      return next
+    })
+  }
+
   return (
     <div className="min-h-full bg-surface">
       <nav
@@ -132,6 +144,7 @@ export default function App() {
           onAccept={handleAccept}
           onRework={handleRework}
           onEngineer={handleEngineer}
+          onRevert={handleRevert}
           statusMessage={statusMessage}
           largeText={display.largeText}
           highContrast={display.highContrast}

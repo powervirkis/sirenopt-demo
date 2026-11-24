@@ -10,6 +10,7 @@ import {
   formatValue,
   getDecision,
   setDecision,
+  clearDecision,
   summarizeDecisions,
   recordEscalation,
 } from './data'
@@ -188,6 +189,14 @@ describe('Maya decisions', () => {
     const d1 = setDecision({}, 202, DECISION.accepted)
     const d2 = setDecision(d1, 202, DECISION.accepted)
     expect(d2).toBe(d1)
+  })
+
+  it('reverting a completed decision returns it to awaiting', () => {
+    let d = setDecision({}, 202, DECISION.accepted)
+    d = clearDecision(d, 202)
+    expect(getDecision(d, 202)).toBe('awaiting')
+    expect(summarizeDecisions(SAMPLES, d).accepted).toBe(0)
+    expect(summarizeDecisions(SAMPLES, d).awaiting).toBe(6)
   })
 })
 

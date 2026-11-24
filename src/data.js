@@ -520,6 +520,14 @@ export function setDecision(decisions, id, next) {
   return { ...decisions, [id]: next }
 }
 
+/** Clear a recorded accept/rework/engineer decision back to awaiting. */
+export function clearDecision(decisions, id) {
+  if (!(id in decisions)) return decisions
+  const next = { ...decisions }
+  delete next[id]
+  return next
+}
+
 /**
  * One in-app escalation record per sample. Repeated Send to engineer does not
  * create duplicates. Carries sample ID, measurements, bands, and reason.
