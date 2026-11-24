@@ -1,42 +1,35 @@
 # PlasmaSmart™ batch results prototype
 
-Clickable SirenOpt PlasmaSmart batch-results demo for Maya (technician) and Derek (engineer).
+Operational demo for SirenOpt PlasmaSmart batch decisions.
 
-## Run locally
+## Roles
+
+- **Maya** — every sample must be **Accepted** or **Sent for rework** before the line moves on.
+- **Derek** — select any sample and inspect ranges, repeatability, and reference coverage.
+
+Navigation is Maya / Derek only. There is no 20-minute / 2-minute switch in the product UI.
+
+## Run
 
 ```bash
 npm install
 npm run dev
+npm test
 ```
 
-Open the Vite URL (usually `http://localhost:5173`).
+Decisions are session-only (clear on reload). Large text and High contrast store in `localStorage` (`plasmasmart-display`).
 
-```bash
-npm test    # decision and workflow unit tests
-npm run build
-```
+## Suggestions vs decisions
 
-## Reset demo
+Suggestions (✓ Accept suggested · ! Boundary uncertain · ↻ Rework suggested) come from illustrative uncertainty ranges vs inclusive specs. They never auto-record a decision. Maya always has the same two actions on every sample.
 
-Use **Reset demo** in the header, or reload the page. Recorded actions (Accepted / Held / Review requested) are **session-only** and are not persisted to a backend.
+## Presenter notes (not in the operational UI)
 
-Display preferences (Large text, High contrast) are stored in `localStorage` under `plasmasmart-display`.
+See `PRESENTER_NOTES` in [`src/data.js`](src/data.js):
 
-## Decision rule (stated in the UI)
-
-Illustrative uncertainty ranges vs inclusive specs:
-
-- **PASS** — all three ranges entirely within specification
-- **NEEDS REVIEW** — a range overlaps a limit, or evidence is missing
-- **FAIL** — a valid range is entirely outside (beats NEEDS REVIEW)
-
-Disposition is separate and never rewrites the result: Awaiting decision / Accepted / Held / Review requested.
-
-## Assumptions
-
-- Repeat-tick intervals in `src/data.js` (`REPEAT_TICKS`) are **existing illustrative demo inputs**, not newly fabricated endpoints for this pass. Point estimates and specs are from the exercise.
-- Lab-coupon scatter and coupon counts are illustrative diagnostics for the engineer view.
-- Accepting passing samples does **not** authorize batch release while any sample is FAIL or NEEDS REVIEW (labeled in the UI).
+- Uncertainty ranges and lab scatters are **illustrative**.
+- Interval rule and #205 mass precision (14.48–14.65 crosses 14.5).
+- Take-home comparison of fuller vs compact Maya layouts belongs in the **presentation**, not a time-mode toggle in the app.
 
 ## Stack
 

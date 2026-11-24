@@ -66,6 +66,14 @@ html.high-contrast body {
   color: #000000;
 }
 
+html.high-contrast .border-line {
+  border-color: #000000;
+}
+
+html.large-text .chart-label {
+  font-size: 1rem;
+}
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);

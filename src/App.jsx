@@ -1,15 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import BatchScreen from './components/BatchScreen'
-import MayaDetail from './components/MayaDetail'
-import ReviewerNotes from './components/ReviewerNotes'
-import SampleDetail from './components/SampleDetail'
+import DerekView from './components/DerekView'
+import MayaView from './components/MayaView'
 import {
   SAMPLES,
-  acceptEligible,
-  acceptOne,
-  holdOne,
-  requestReview,
-  summarize,
+  setDecision,
+  summarizeDecisions,
+  DECISION,
 } from './data'
 
 const DISPLAY_KEY = 'plasmasmart-display'
@@ -25,11 +21,9 @@ function loadDisplay() {
 }
 
 export default function App() {
-  const [mode, setMode] = useState('20min')
-  const [mayaId, setMayaId] = useState(null)
-  const [engineerId, setEngineerId] = useState(null)
-  const [dispositions, setDispositions] = useState({})
-  const [reviewerOpen, setReviewerOpen] = useState(false)
+  const [role, setRole] = useState('maya')
+  const [derekSampleId, setDerekSampleId] = useState(SAMPLES[0].id)
+  const [decisions, setDecisions] = useState({})
   const [statusMessage, setStatusMessage] = useState('')
   const [display, setDisplay] = useState(loadDisplay)
 
@@ -43,108 +37,105 @@ export default function App() {
     setStatusMessage(message)
   }, [])
 
-  const mayaSample = SAMPLES.find((s) => s.id === mayaId) || null
-  const engineerSample = SAMPLES.find((s) => s.id === engineerId) || null
-  const overlayOpen = Boolean(mayaSample || engineerSample || reviewerOpen)
-
-  const handleAcceptOne = (id) => {
-    setDispositions((prev) => {
-      const next = acceptOne(SAMPLES, prev, id)
-      const sum = summarize(SAMPLES, next)
-      announce(
-        `Sample #${id} accepted; ${sum.ready} sample${sum.ready === 1 ? '' : 's'} remain${sum.ready === 1 ? 's' : ''} ready.`,
-      )
+  const handleAccept = (id) => {
+    setDecisions((prev) => {
+      const next = setDecision(prev, id, DECISION.accepted)
+      const sum = summarizeDecisions(SAMPLES, next)
+      if (sum.complete) {
+        announce(`Sample #${id} accepted. Batch review complete · 0 awaiting decision.`)
+      } else {
+        announce(
+          `Sample #${id} accepted. ${sum.awaiting} awaiting decision · ${sum.accepted} accepted · ${sum.rework} sent for rework.`,
+        )
+      }
       return next
     })
   }
 
-  const handleAcceptEligible = () => {
-    setDispositions((prev) => {
-      const next = acceptEligible(SAMPLES, prev)
-      const sum = summarize(SAMPLES, next)
-      announce(
-        `Eligible passing samples accepted; ${sum.accepted} accepted, ${sum.ready} ready.`,
-      )
+  const handleRework = (id) => {
+    setDecisions((prev) => {
+      const next = setDecision(prev, id, DECISION.rework)
+      const sum = summarizeDecisions(SAMPLES, next)
+      if (sum.complete) {
+        announce(`Sample #${id} sent for rework. Batch review complete · 0 awaiting decision.`)
+      } else {
+        announce(
+          `Sample #${id} sent for rework. ${sum.awaiting} awaiting decision · ${sum.accepted} accepted · ${sum.rework} sent for rework.`,
+        )
+      }
       return next
     })
-  }
-
-  const handleHold = (id) => {
-    setDispositions((prev) => {
-      const next = holdOne(SAMPLES, prev, id)
-      announce(`Sample #${id} held. Result remains FAIL.`)
-      return next
-    })
-  }
-
-  const handleRequestReview = (id) => {
-    setDispositions((prev) => {
-      const next = requestReview(SAMPLES, prev, id)
-      announce(`Sample #${id}: review requested (simulated). No message was sent.`)
-      return next
-    })
-  }
-
-  const handleReset = () => {
-    setDispositions({})
-    setMayaId(null)
-    setEngineerId(null)
-    announce('Demo reset. Session actions cleared.')
   }
 
   return (
     <div className="min-h-full bg-surface">
-      <div {...(overlayOpen ? { inert: '' } : {})}>
-        <BatchScreen
-          mode={mode}
+      <nav
+        className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur"
+        aria-label="Role"
+      >
+        <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 sm:px-6">
+          <div
+            className="flex rounded-xl border-2 border-line bg-surface p-1"
+            role="radiogroup"
+            aria-label="Role view"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={role === 'maya'}
+              onClick={() => setRole('maya')}
+              className={`min-h-11 rounded-lg px-4 text-base font-semibold ${
+                role === 'maya' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
+              }`}
+            >
+              Maya
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={role === 'derek'}
+              onClick={() => setRole('derek')}
+              className={`min-h-11 rounded-lg px-4 text-base font-semibold ${
+                role === 'derek' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
+              }`}
+            >
+              Derek
+            </button>
+          </div>
+          <p className="hidden text-sm text-muted sm:block">
+            {role === 'maya' ? 'Batch decisions' : 'Engineering evidence'}
+          </p>
+        </div>
+      </nav>
+
+      {role === 'maya' ? (
+        <MayaView
           samples={SAMPLES}
-          dispositions={dispositions}
-          onModeChange={setMode}
-          onOpenSample={setMayaId}
-          onAcceptOne={handleAcceptOne}
-          onAcceptEligible={handleAcceptEligible}
-          onHold={handleHold}
-          onRequestReview={handleRequestReview}
-          onViewEngineer={setEngineerId}
-          onShowReviewerNotes={() => setReviewerOpen(true)}
-          onResetDemo={handleReset}
+          decisions={decisions}
+          onAccept={handleAccept}
+          onRework={handleRework}
+          statusMessage={statusMessage}
           largeText={display.largeText}
           highContrast={display.highContrast}
-          onToggleLargeText={() =>
-            setDisplay((d) => ({ ...d, largeText: !d.largeText }))
-          }
+          onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}
           onToggleHighContrast={() =>
             setDisplay((d) => ({ ...d, highContrast: !d.highContrast }))
           }
-          statusMessage={statusMessage}
         />
-      </div>
-
-      {mayaSample && (
-        <MayaDetail
-          sample={mayaSample}
-          dispositions={dispositions}
-          onClose={() => setMayaId(null)}
-          onAcceptOne={handleAcceptOne}
-          onHold={handleHold}
-          onRequestReview={handleRequestReview}
-          onViewEngineer={(id) => {
-            setMayaId(null)
-            setEngineerId(id)
-          }}
+      ) : (
+        <DerekView
+          samples={SAMPLES}
+          selectedId={derekSampleId}
+          onSelect={setDerekSampleId}
+          decisions={decisions}
+          largeText={display.largeText}
+          highContrast={display.highContrast}
+          onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}
+          onToggleHighContrast={() =>
+            setDisplay((d) => ({ ...d, highContrast: !d.highContrast }))
+          }
         />
       )}
-
-      {engineerSample && (
-        <SampleDetail
-          sample={engineerSample}
-          dispositions={dispositions}
-          onBack={() => setEngineerId(null)}
-          onRequestReview={handleRequestReview}
-        />
-      )}
-
-      <ReviewerNotes open={reviewerOpen} onClose={() => setReviewerOpen(false)} />
     </div>
   )
 }
