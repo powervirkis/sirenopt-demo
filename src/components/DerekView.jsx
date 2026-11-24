@@ -26,6 +26,8 @@ import {
 import SpecBar, { ChartLegend } from './SpecBar'
 
 function RescanRuler({ sample, propertyKey }) {
+  const [activeTick, setActiveTick] = useState(null)
+  const [pinnedTick, setPinnedTick] = useState(null)
   const p = PROPERTIES[propertyKey]
   const ticks = sample.repeatTicks[propertyKey] || []
   const value = sample.values[propertyKey]
@@ -63,9 +65,9 @@ function RescanRuler({ sample, propertyKey }) {
       </p>
       <div className="mt-4 rounded-lg bg-surface p-4">
         <div
-          className="relative h-16 w-full"
-          role="img"
-          aria-label={sample.explanations[propertyKey].text}
+          className="relative mt-6 h-16 w-full"
+          role="group"
+          aria-label={`${sample.explanations[propertyKey].text} Repeat passes:`}
         >
           <div
             className="absolute top-6 h-4 rounded-sm bg-emerald-100"
@@ -80,20 +82,58 @@ function RescanRuler({ sample, propertyKey }) {
             style={{ left: `${toPct(p.max)}%` }}
             title={`Upper limit ${formatValue(propertyKey, p.max)}`}
           />
-          {ticks.map((tick, index) => (
-            <div
-              key={`${tick}-${index}`}
-              className="absolute top-3 bottom-5 w-0.5 bg-ink/80"
-              style={{ left: `${toPct(tick)}%` }}
-            />
-          ))}
           <div
-            className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${meta.bar}`}
+            className={`pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${meta.bar}`}
             style={{ left: `${toPct(value)}%` }}
           />
+          {ticks.map((tick, index) => {
+            const label = `Pass ${index + 1}: ${formatValue(propertyKey, tick, { range: true })} ${p.unit}`
+            const shown = activeTick === index || pinnedTick === index
+            const outside = tick > p.max || tick < p.min
+            return (
+              <button
+                key={`${tick}-${index}`}
+                type="button"
+                aria-label={`${label}${outside ? ', outside spec' : ', in spec'}`}
+                aria-pressed={pinnedTick === index}
+                onMouseEnter={() => setActiveTick(index)}
+                onMouseLeave={() => setActiveTick(null)}
+                onFocus={() => setActiveTick(index)}
+                onBlur={() => setActiveTick(null)}
+                onClick={() => setPinnedTick((cur) => (cur === index ? null : index))}
+                className={`group absolute top-1 bottom-3 w-3 -translate-x-1/2 cursor-pointer focus-target rounded-sm ${
+                  shown ? 'z-20' : 'z-10'
+                }`}
+                style={{ left: `${toPct(tick)}%` }}
+              >
+                <span
+                  className={`absolute inset-y-2 left-1/2 -translate-x-1/2 ${
+                    shown ? 'w-1 bg-engineer' : 'w-0.5 bg-ink/80 group-hover:bg-engineer'
+                  }`}
+                  aria-hidden="true"
+                />
+                {shown ? (
+                  <span
+                    className={`pointer-events-none absolute bottom-full mb-1 whitespace-nowrap rounded-md bg-ink px-2 py-1 text-xs font-semibold text-white shadow ${
+                      toPct(tick) > 75
+                        ? 'right-0'
+                        : toPct(tick) < 25
+                          ? 'left-0'
+                          : 'left-1/2 -translate-x-1/2'
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {label}
+                    {outside ? ' · out of spec' : ''}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
         </div>
         <p className="mt-3 text-sm text-muted">
-          | = one plasma pass · ○ reported value · thick mark = upper limit
+          | = one plasma pass (hover or tap for its value) · ○ reported value · thick mark = upper
+          limit
         </p>
         <p className="mt-2 text-base text-ink">
           Point {formatValue(propertyKey, value)} {p.unit} · Spread{' '}
