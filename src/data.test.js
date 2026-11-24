@@ -13,6 +13,8 @@ import {
   getCase,
   summarizeCases,
   mayaDecide,
+  mayaAcceptSuggested,
+  MAYA_BULK_ACCEPT_REASON,
   confirmEscalation,
   derekResolve,
   requestVerification,
@@ -89,6 +91,45 @@ describe('suggestions', () => {
   it('uses above/below limit visual labels', () => {
     expect(VISUAL_META.high.label).toBe('Above limit')
     expect(VISUAL_META.low.label).toBe('Below limit')
+  })
+})
+
+describe('mayaAcceptSuggested', () => {
+  it('accepts exactly the suggested passes from the initial state', () => {
+    const { cases, ids } = mayaAcceptSuggested({}, SAMPLES, { at: FIXED_AT })
+    expect(ids).toEqual([202, 206])
+    expect(getCase(cases, 202).state).toBe(DECISION.accepted)
+    expect(getCase(cases, 206).state).toBe(DECISION.accepted)
+    expect(getCase(cases, 201).state).toBe(DECISION.awaiting)
+    expect(getCase(cases, 203).state).toBe(DECISION.awaiting)
+    expect(getCase(cases, 204).state).toBe(DECISION.awaiting)
+    expect(getCase(cases, 205).state).toBe(DECISION.awaiting)
+  })
+
+  it('records the bulk accept reason in disposition and history', () => {
+    const { cases } = mayaAcceptSuggested({}, SAMPLES, { at: FIXED_AT })
+    const c = getCase(cases, 202)
+    expect(c.disposition.reason).toBe(MAYA_BULK_ACCEPT_REASON)
+    expect(historyEntries(c)[0].detail).toBe(MAYA_BULK_ACCEPT_REASON)
+  })
+
+  it('skips escalated and already decided cases', () => {
+    let cases = mayaDecide({}, 206, DECISION.accepted, { at: FIXED_AT })
+    cases = confirmEscalation(cases, SAMPLES.find((s) => s.id === 202), {
+      reasonId: 'uncertain',
+      at: FIXED_AT,
+    })
+    const { cases: next, ids } = mayaAcceptSuggested(cases, SAMPLES, { at: FIXED_AT })
+    expect(ids).toEqual([])
+    expect(getCase(next, 202).state).toBe(DECISION.engineer)
+    expect(getCase(next, 206).state).toBe(DECISION.accepted)
+  })
+
+  it('is a no-op when run a second time', () => {
+    const first = mayaAcceptSuggested({}, SAMPLES, { at: FIXED_AT })
+    const second = mayaAcceptSuggested(first.cases, SAMPLES, { at: FIXED_AT })
+    expect(second.ids).toEqual([])
+    expect(second.cases).toBe(first.cases)
   })
 })
 

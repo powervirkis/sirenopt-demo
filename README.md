@@ -7,7 +7,12 @@ Operational demo for SirenOpt PlasmaSmart batch decisions with a shared escalati
 - **Maya** — routine Accept / Send for rework; escalate with a confirmed reason.
 - **Derek** — owns escalated cases; Accept / Rework / Request verification; record returned evidence.
 
-Navigation is Maya / Derek only. There is no 20-minute / 2-minute switch in the product UI (present that comparison offline).
+Top navigation is Maya / Derek. Inside Maya, a **20 min / 2 min** toggle changes how much she sees:
+
+- **20 min** — every sample with measurement values, a plain spec range, and per-sample Accept / Rework / Send to engineer.
+- **2 min** — triage: bulk **Accept N suggested passes**, then rework and second-look rows one at a time. No measurement rows. Escalation still requires a confirmed reason.
+
+Uncertainty ranges, repeat scans, and lab-coupon charts stay in Derek's view.
 
 ## Ownership assumption (validate with SirenOpt)
 

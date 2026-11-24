@@ -6,6 +6,7 @@ import {
   SAMPLES,
   summarizeCases,
   mayaDecide,
+  mayaAcceptSuggested,
   confirmEscalation,
   derekResolve,
   requestVerification,
@@ -35,6 +36,7 @@ function formatProgress(sum) {
 
 export default function App() {
   const [role, setRole] = useState('maya')
+  const [mayaMode, setMayaMode] = useState('20min')
   const [derekSampleId, setDerekSampleId] = useState(null)
   const [derekTab, setDerekTab] = useState('escalations')
   const [cases, setCases] = useState({})
@@ -67,6 +69,16 @@ export default function App() {
       announce(
         `Sample #${id} sent for rework. ${formatProgress(summarizeCases(SAMPLES, next))}`,
       )
+      return next
+    })
+  }
+
+  const handleMayaAcceptSuggested = () => {
+    setCases((prev) => {
+      const { cases: next, ids } = mayaAcceptSuggested(prev, SAMPLES)
+      if (ids.length === 0) return prev
+      const label = ids.length === 1 ? '1 sample accepted' : `${ids.length} samples accepted`
+      announce(`${label}. ${formatProgress(summarizeCases(SAMPLES, next))}`)
       return next
     })
   }
@@ -182,8 +194,11 @@ export default function App() {
         <MayaView
           samples={SAMPLES}
           cases={cases}
+          mode={mayaMode}
+          onModeChange={setMayaMode}
           onAccept={handleMayaAccept}
           onRework={handleMayaRework}
+          onAcceptSuggested={handleMayaAcceptSuggested}
           onEscalate={handleEscalate}
           onReopen={handleMayaReopen}
           statusMessage={statusMessage}

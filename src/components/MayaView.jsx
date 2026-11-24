@@ -20,6 +20,7 @@ import {
 } from '../data'
 import AccessibilityMenu from './AccessibilityMenu'
 import EscalationSheet from './EscalationSheet'
+import MayaQuickView from './MayaQuickView'
 
 const MOVE_MS = 420
 const DROP_MS = 480
@@ -142,10 +143,13 @@ function MeasurementRows({ sample }) {
           visual === 'unavailable'
             ? '—'
             : `${formatValue(key, sample.values[key])}${p.showUnitOnMaya ? p.unit : ''}`
+        const specLabel = `spec ${formatValue(key, p.min)}–${formatValue(key, p.max)}${
+          p.showUnitOnMaya ? p.unit : ` ${p.unit}`
+        }`
         const a11y = `${p.label}: ${
           visual === 'unavailable'
             ? 'unavailable'
-            : `${formatValue(key, sample.values[key])} ${p.unit}, ${meta.meaning}`
+            : `${formatValue(key, sample.values[key])} ${p.unit}, ${meta.meaning}; ${specLabel}`
         }`
 
         return (
@@ -153,8 +157,9 @@ function MeasurementRows({ sample }) {
             key={key}
             className="flex items-baseline justify-between gap-3 py-1.5 first:pt-0 last:pb-0"
           >
-            <span className="min-w-0 flex-1 text-sm font-medium leading-snug text-muted">
-              {p.label}
+            <span className="min-w-0 flex-1 leading-snug">
+              <span className="block text-sm font-medium text-muted">{p.label}</span>
+              <span className="block text-xs text-muted/80">{specLabel}</span>
             </span>
             <span className="flex shrink-0 items-baseline gap-2 tabular-nums">
               <span className="text-lg font-semibold leading-none text-ink" aria-hidden="true">
@@ -446,8 +451,11 @@ function ProgressSummary({ counts }) {
 export default function MayaView({
   samples,
   cases,
+  mode = '20min',
+  onModeChange,
   onAccept,
   onRework,
+  onAcceptSuggested,
   onEscalate,
   onReopen,
   statusMessage,
@@ -463,6 +471,7 @@ export default function MayaView({
   const escalateSample = samples.find((s) => s.id === escalateSampleId) || null
   const focusPlanRef = useRef(null)
   const flipRef = useRef(null)
+  const isQuick = mode === '2min'
 
   useLayoutEffect(() => {
     const flip = flipRef.current
@@ -524,6 +533,14 @@ export default function MayaView({
   const handleAccept = (id) => beginListMove(id, 'after-complete', onAccept)
   const handleRework = (id) => beginListMove(id, 'after-complete', onRework)
   const handleReopen = (id) => beginListMove(id, 'after-reopen', onReopen)
+  const handleAcceptSuggested = () => {
+    const prevRects = captureCardPositions()
+    if (document.querySelector('[data-testid="decisions-separator"]')) {
+      prevRects.set('__separator__', true)
+    }
+    flipRef.current = { prevRects, movedId: null }
+    onAcceptSuggested?.()
+  }
 
   const handleConfirmEscalate = ({ reasonId, note }) => {
     if (!escalateSample) return
@@ -554,14 +571,44 @@ export default function MayaView({
           <p className="mt-1 text-base text-muted">
             {BATCH.line} · {BATCH.product} · {BATCH.shift}
           </p>
-          <MeasurementKey />
+          {!isQuick ? <MeasurementKey /> : null}
         </div>
-        <AccessibilityMenu
-          largeText={largeText}
-          highContrast={highContrast}
-          onToggleLargeText={onToggleLargeText}
-          onToggleHighContrast={onToggleHighContrast}
-        />
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <div
+            className="flex rounded-xl border-2 border-line bg-surface p-1"
+            role="radiogroup"
+            aria-label="Review time"
+          >
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === '20min'}
+              onClick={() => onModeChange?.('20min')}
+              className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
+                mode === '20min' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
+              }`}
+            >
+              20 min
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === '2min'}
+              onClick={() => onModeChange?.('2min')}
+              className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
+                mode === '2min' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
+              }`}
+            >
+              2 min
+            </button>
+          </div>
+          <AccessibilityMenu
+            largeText={largeText}
+            highContrast={highContrast}
+            onToggleLargeText={onToggleLargeText}
+            onToggleHighContrast={onToggleHighContrast}
+          />
+        </div>
       </header>
 
       <ProgressSummary counts={counts} />
@@ -572,56 +619,70 @@ export default function MayaView({
         </p>
       ) : null}
 
-      <section aria-labelledby="pending-heading" data-testid="pending-section">
-        <h2 id="pending-heading" className="text-lg font-bold text-ink">
-          Pending decisions ({pending.length})
-        </h2>
-        {pending.length === 0 ? (
-          <p
-            className="mt-3 rounded-xl border border-pass/40 bg-pass-bg px-4 py-3 text-base font-medium text-pass"
-            tabIndex={-1}
-            data-testid="batch-complete-message"
-          >
-            Batch review complete · {counts.accepted} accepted · {counts.rework} sent for rework
-          </p>
-        ) : (
-          <ul className="sample-list mt-3 space-y-3">
-            {pending.map((sample) => (
-              <li key={sample.id} className="sample-list-item">
-                <SampleCard
-                  sample={sample}
-                  caseRecord={getCase(cases, sample.id)}
-                  onAccept={handleAccept}
-                  onRework={handleRework}
-                  onRequestEscalate={setEscalateSampleId}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      {completed.length > 0 ? (
+      {isQuick ? (
+        <MayaQuickView
+          samples={samples}
+          cases={cases}
+          onAccept={handleAccept}
+          onRework={handleRework}
+          onAcceptSuggested={handleAcceptSuggested}
+          onRequestEscalate={setEscalateSampleId}
+          onReopen={handleReopen}
+        />
+      ) : (
         <>
-          <hr className="border-t-2 border-line" data-testid="decisions-separator" />
-          <section aria-labelledby="completed-heading" data-testid="completed-section">
-            <h2 id="completed-heading" className="text-lg font-bold text-ink">
-              Decisions made ({completed.length})
+          <section aria-labelledby="pending-heading" data-testid="pending-section">
+            <h2 id="pending-heading" className="text-lg font-bold text-ink">
+              Pending decisions ({pending.length})
             </h2>
-            <ul className="sample-list mt-3 space-y-3">
-              {completed.map((sample) => (
-                <li key={sample.id} className="sample-list-item">
-                  <SampleCard
-                    sample={sample}
-                    caseRecord={getCase(cases, sample.id)}
-                    onReopen={handleReopen}
-                  />
-                </li>
-              ))}
-            </ul>
+            {pending.length === 0 ? (
+              <p
+                className="mt-3 rounded-xl border border-pass/40 bg-pass-bg px-4 py-3 text-base font-medium text-pass"
+                tabIndex={-1}
+                data-testid="batch-complete-message"
+              >
+                Batch review complete · {counts.accepted} accepted · {counts.rework} sent for rework
+              </p>
+            ) : (
+              <ul className="sample-list mt-3 space-y-3">
+                {pending.map((sample) => (
+                  <li key={sample.id} className="sample-list-item">
+                    <SampleCard
+                      sample={sample}
+                      caseRecord={getCase(cases, sample.id)}
+                      onAccept={handleAccept}
+                      onRework={handleRework}
+                      onRequestEscalate={setEscalateSampleId}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
+
+          {completed.length > 0 ? (
+            <>
+              <hr className="border-t-2 border-line" data-testid="decisions-separator" />
+              <section aria-labelledby="completed-heading" data-testid="completed-section">
+                <h2 id="completed-heading" className="text-lg font-bold text-ink">
+                  Decisions made ({completed.length})
+                </h2>
+                <ul className="sample-list mt-3 space-y-3">
+                  {completed.map((sample) => (
+                    <li key={sample.id} className="sample-list-item">
+                      <SampleCard
+                        sample={sample}
+                        caseRecord={getCase(cases, sample.id)}
+                        onReopen={handleReopen}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </>
+          ) : null}
         </>
-      ) : null}
+      )}
 
       {escalateSample ? (
         <EscalationSheet

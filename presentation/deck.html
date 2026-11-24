@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PlasmaSmart: Designing for Maya and Derek</title>
+<script src="assets/rough.js"></script>
+<style>
+  @font-face { font-family: 'Kalam'; font-weight: 300; src: url(assets/Kalam-300.woff2) format('woff2'); }
+  @font-face { font-family: 'Kalam'; font-weight: 400; src: url(assets/Kalam-400.woff2) format('woff2'); }
+  @font-face { font-family: 'Kalam'; font-weight: 700; src: url(assets/Kalam-700.woff2) format('woff2'); }
+  @font-face { font-family: 'Patrick Hand'; font-weight: 400; src: url(assets/PatrickHand-400.woff2) format('woff2'); }
+
+  @page { size: 1200px 675px; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #fff; }
+  body { color: #111; font-family: 'Patrick Hand', sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .slide { position: relative; width: 1200px; height: 675px; overflow: hidden; background: #fff; page-break-after: always; break-after: page; }
+  .slide > svg.sk { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .slide > *:not(svg) { position: absolute; z-index: 1; }
+
+  .title { left: 48px; top: 18px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 46px; line-height: 1.1; letter-spacing: -0.5px; }
+  .sub { left: 50px; top: 76px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 400; font-size: 22px; line-height: 1.2; }
+  .sub b { font-weight: 700; }
+
+  .hand { font-family: 'Kalam', 'Segoe UI', sans-serif; }
+  .ui { font-family: 'Patrick Hand', 'Segoe UI', sans-serif; }
+  .b { font-weight: 700; }
+  .center { display: flex; align-items: center; justify-content: center; text-align: center; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .halo { background: #fff; padding: 0 8px; border-radius: 4px; }
+  .muted { color: #444; }
+  .caps { font-size: 13px; letter-spacing: 1.2px; text-transform: uppercase; }
+
+  .node { font-family: 'Patrick Hand', 'Segoe UI', sans-serif; font-size: 21px; line-height: 1.1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px 10px; }
+  .lane { font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 1.5px; }
+  .note { font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 300; font-size: 15px; line-height: 1.2; text-align: center; }
+  .elabel { font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 18px; }
+
+  .ann { font-family: 'Kalam', 'Segoe UI', sans-serif; font-size: 17px; line-height: 1.22; }
+  .ann h3 { font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 21px; line-height: 1.1; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+  #s4 .ann h3 { font-size: 18.5px; gap: 6px; }
+  .num { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 17px; }
+
+  .ic { display: inline-block; width: 16px; height: 16px; vertical-align: -2px; }
+  .btn { display: flex; align-items: center; justify-content: center; font-family: 'Patrick Hand', 'Segoe UI', sans-serif; font-size: 19px; height: 42px; }
+  .btn.dark { color: #fff; }
+
+  .bottom { left: 48px; width: 1104px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-size: 21px; line-height: 1.25; }
+  .bottom b { font-weight: 700; }
+  .small { font-size: 16px; font-weight: 300; }
+</style>
+</head>
+<body>
+
+<!-- ============ SLIDE 1 ============ -->
+<section class="slide" id="s1">
+  <h1 class="title">Decision Logic &amp; Assumptions</h1>
+  <p class="sub">Different users need <b>different levels of information</b> to decide on the <b>same analysis</b>.</p>
+
+  <div class="lane" style="left:50px;top:124px">MAYA · REVIEWS EVERY ANALYSIS</div>
+  <div data-sk="hline" data-dash="1" style="left:40px;top:274px;width:1120px;height:2px"></div>
+  <div class="lane" style="left:50px;top:282px">DEREK · RESOLVES ESCALATIONS · CAN OPEN ANY ANALYSIS</div>
+
+  <div id="f-new" class="node" data-sk="rbox" style="left:56px;top:182px;width:150px;height:58px">New analysis</div>
+  <div id="f-maya" class="node" data-sk="rbox" style="left:262px;top:182px;width:160px;height:58px">Maya reviews</div>
+  <div class="note" style="left:232px;top:244px;width:220px">sees status · suggestion · why</div>
+
+  <div id="f-q" class="node" data-sk="diamond" style="left:462px;top:156px;width:238px;height:110px;font-size:19px;padding:0 44px">Can Maya<br>resolve it?</div>
+
+  <div id="f-rec" class="node" data-sk="rbox" data-sw="2.6" style="left:958px;top:183px;width:196px;height:56px">Record decision</div>
+  <div class="elabel" style="left:800px;top:176px">Yes</div>
+
+  <div class="elabel" style="left:594px;top:276px">No</div>
+  <div id="f-esc" class="node" data-sk="rbox" style="left:486px;top:318px;width:190px;height:56px">Escalate to Derek</div>
+  <div class="note" style="left:466px;top:378px;width:230px">carries Maya's reason</div>
+
+  <div id="f-rev" class="node" data-sk="rbox" style="left:718px;top:318px;width:204px;height:56px">Detailed technical review</div>
+  <div class="note" style="left:690px;top:378px;width:260px">sees measurements · specs · deviations</div>
+
+  <div id="f-exp" class="node" data-sk="rbox" data-sw="2.6" style="left:958px;top:318px;width:196px;height:56px">Record expert decision</div>
+  <div class="note" style="left:944px;top:378px;width:224px">traceable: who · what · why</div>
+
+  <i data-arrow="f-new:r f-maya:l"></i>
+  <i data-arrow="f-maya:r f-q:l"></i>
+  <i data-arrow="f-q:r f-rec:l"></i>
+  <i data-arrow="f-q:b f-esc:t"></i>
+  <i data-arrow="f-esc:r f-rev:l"></i>
+  <i data-arrow="f-rev:r f-exp:l"></i>
+
+  <div data-sk="rbox" style="left:40px;top:420px;width:736px;height:232px;padding:14px 22px">
+    <div class="hand b" style="font-size:23px;margin-bottom:6px">Key design assumptions</div>
+    <ul class="ui" style="list-style:none;font-size:19.5px;line-height:1.5">
+      <li>– Maya is the first line of defense and <u>reviews every analysis</u>.</li>
+      <li>– Derek can open any analysis, but his job is <u>resolving escalations</u>.</li>
+      <li>– The system recommends; <u>humans keep decision authority</u>.</li>
+      <li>– Information is disclosed progressively, by responsibility.</li>
+      <li>– Every decision and escalation reason stays traceable.</li>
+    </ul>
+  </div>
+
+  <div data-sk="dash" style="left:802px;top:420px;width:358px;height:232px;padding:14px 20px">
+    <div class="hand b" style="font-size:23px;margin-bottom:6px;display:flex;align-items:center;gap:8px"><span class="num" data-sk="circle">!</span>Working assumption</div>
+    <p class="ui" style="font-size:18.5px;line-height:1.3"><b>Near limit → escalate.</b> If the value is within spec but its uncertainty range crosses a limit, Maya sends it to Derek.</p>
+    <p class="hand" style="font-size:15.5px;line-height:1.3;margin-top:8px;font-weight:300">e.g. #201 porosity 35.6%, range 35.2–36.1% vs. spec 32–36%. SirenOpt: reasonable assumptions are fine; the assessment doesn't depend on them.</p>
+  </div>
+</section>
+
+<!-- ============ SLIDE 2 ============ -->
+<section class="slide" id="s2">
+  <h1 class="title">Maya: Simplify the Decision</h1>
+  <p class="sub"><b>Design decision:</b> minimize cognitive load without compromising decision quality.</p>
+
+  <!-- sketch -->
+  <div data-sk="rbox" data-sw="2.4" style="left:48px;top:118px;width:590px;height:486px"></div>
+  <div data-sk="hatch" style="left:48px;top:118px;width:590px;height:64px"></div>
+  <div style="left:66px;top:126px"><span class="halo hand b" style="font-size:30px">Batch B-1147</span></div>
+  <div class="ui" style="left:400px;top:140px"><span class="halo" style="font-size:16px">Line 2 · Cathode coating</span></div>
+
+  <div id="m-pending" class="hand b" style="left:72px;top:190px;font-size:22px">Pending decisions (6)</div>
+
+  <div data-sk="rbox" style="left:70px;top:226px;width:546px;height:320px"></div>
+  <div class="row" style="left:88px;top:232px;width:512px">
+    <span class="hand b" style="font-size:26px">#201</span>
+    <span id="m-status" class="ui" style="font-size:19px">Awaiting decision</span>
+  </div>
+  <div class="ui" style="left:88px;top:270px;width:512px;font-size:19px">
+    <div class="row" style="height:31px"><span>Mass loading</span><span style="font-size:21px">15.1 <span class="ic" data-sk="check"></span></span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:31px;padding-top:2px"><span>Porosity</span><span style="font-size:21px">35.6% <b class="hand">! Near limit</b></span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:31px;padding-top:2px"><span>Sheet resistance</span><span style="font-size:21px">0.31 <span class="ic" data-sk="check"></span></span></div>
+  </div>
+  <div data-sk="hline" style="left:88px;top:374px;width:512px;height:2px"></div>
+  <div id="m-rec" class="hand b" style="left:88px;top:380px;width:512px;font-size:21px">Suggested: Send to engineer</div>
+  <div id="m-why" class="ui" style="left:88px;top:410px;width:512px;font-size:19px">Porosity near limit.</div>
+
+  <div class="btn" data-sk="rbox" style="left:88px;top:440px;width:250px">Accept</div>
+  <div class="btn" data-sk="rbox" style="left:350px;top:440px;width:250px">Send for rework</div>
+  <div id="m-ctrl" class="btn dark" data-sk="dark" style="left:88px;top:492px;width:512px">Send to engineer</div>
+  <div class="caps hand b" data-sk="tag" style="left:500px;top:482px;padding:0 6px;font-size:11px;line-height:18px;background:#fff">Suggested</div>
+
+  <div data-sk="rbox" style="left:70px;top:556px;width:546px;height:32px"></div>
+  <div class="row ui" style="left:88px;top:559px;width:512px;font-size:17px"><span class="b">#202</span><span>Suggested: Accept</span><span>Awaiting decision</span></div>
+
+  <!-- escalation sheet -->
+  <div id="m-sheet" data-sk="rbox" data-sw="2.2" style="left:902px;top:424px;width:258px;height:216px"></div>
+  <div data-sk="hatch" style="left:902px;top:424px;width:258px;height:36px"></div>
+  <div style="left:912px;top:428px"><span class="halo hand b" style="font-size:18px">Send #201 to engineer</span></div>
+  <div class="ui" style="left:916px;top:466px;width:232px;font-size:15.5px;line-height:1.3">
+    <div class="caps" style="font-size:11px">System finding</div>
+    <div>Porosity near limit.</div>
+    <div class="caps" style="font-size:11px;margin-top:5px">Maya's reason</div>
+    <div><span class="ic" data-sk="radio-on"></span> Uncertain result</div>
+    <div><span class="ic" data-sk="radio"></span> Does not match what I observe</div>
+    <div><span class="ic" data-sk="radio"></span> Unexpected for this batch …</div>
+  </div>
+  <div class="btn dark" data-sk="dark" style="left:1020px;top:600px;width:126px;height:30px;font-size:15px">Send</div>
+  <div class="ui" style="left:916px;top:606px;font-size:14px">+ optional note</div>
+  <i data-arrow="m-ctrl:r:0.5 m-sheet:l:0.55" data-bend="-30"></i>
+
+  <!-- annotations -->
+  <div id="a2-1" class="ann" style="left:700px;top:118px;width:450px">
+    <h3><span class="num" data-sk="circle">1</span>Clear analysis status</h3>
+    What is waiting on her, and how much of the batch is left.
+  </div>
+  <div id="a2-2" class="ann" style="left:700px;top:206px;width:450px">
+    <h3><span class="num" data-sk="circle">2</span>Recommended action</h3>
+    One suggestion. It never records a decision for her.
+  </div>
+  <div id="a2-3" class="ann" style="left:700px;top:294px;width:450px">
+    <h3><span class="num" data-sk="circle">3</span>Short, plain explanation</h3>
+    Why, in one line, tied to the property that matters.
+  </div>
+  <div id="a2-4" class="ann" style="left:700px;top:372px;width:190px">
+    <h3><span class="num" data-sk="circle">4</span>Simple controls</h3>
+    Three choices. Escalating asks for a reason, so Derek gets context.
+  </div>
+  <i data-arrow="a2-1:l:0.3 m-status:r" data-bend="16"></i>
+  <i data-arrow="a2-2:l:0.3 m-rec:r" data-bend="16"></i>
+  <i data-arrow="a2-3:l:0.3 m-why:r" data-bend="-10"></i>
+  <i data-arrow="a2-4:l:0.2 m-ctrl:r:0.3" data-bend="-14"></i>
+
+  <div class="bottom" style="top:612px;width:840px">
+    <b>Maya shouldn't have to interpret ML output or inspect every physical measurement to make a routine decision.</b>
+  </div>
+</section>
+
+<!-- ============ SLIDE 3 ============ -->
+<section class="slide" id="s3">
+  <h1 class="title">Derek: Prioritize Escalations</h1>
+  <p class="sub"><b>Design decision:</b> organize the interface around <b>required action</b>, not data availability.</p>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:250px;top:118px;width:690px;height:486px"></div>
+  <div data-sk="hatch" style="left:250px;top:118px;width:690px;height:58px"></div>
+  <div style="left:266px;top:126px"><span class="halo hand b" style="font-size:27px">Engineering evidence</span></div>
+  <div class="ui" style="left:742px;top:138px"><span class="halo" style="font-size:17px">Derek · Batch B-1147</span></div>
+
+  <div class="btn dark" data-sk="dark" style="left:270px;top:190px;width:196px;height:38px">Escalations (2)</div>
+  <div id="d-alltab" class="btn" data-sk="rbox" style="left:478px;top:190px;width:196px;height:38px">All analyses (6)</div>
+
+  <!-- area A -->
+  <div id="z-a" data-sk="rbox" data-sw="3.4" style="left:266px;top:242px;width:358px;height:236px"></div>
+  <div class="hand b" style="left:282px;top:248px;font-size:22px">Awaiting your decision (2)</div>
+  <div class="ui" data-sk="dark" style="left:282px;top:284px;width:326px;height:86px;padding:6px 12px;color:#fff;font-size:17px;line-height:1.3">
+    <div class="row"><span class="b" style="font-size:22px">#203</span><span>Awaiting engineer · 12 min</span></div>
+    <div>System: Mass loading above limit.</div>
+    <div>Maya: Does not match what I observe</div>
+  </div>
+  <div class="ui" data-sk="rbox" style="left:282px;top:380px;width:326px;height:86px;padding:6px 12px;font-size:17px;line-height:1.3">
+    <div class="row"><span class="b" style="font-size:22px">#205</span><span>Awaiting engineer · 4 min</span></div>
+    <div>System: Sheet resistance above limit.</div>
+    <div>Maya: Unexpected for this batch</div>
+  </div>
+
+  <!-- area B -->
+  <div id="z-b" data-sk="dash" style="left:266px;top:494px;width:358px;height:92px"></div>
+  <div class="hand b" style="left:282px;top:500px;font-size:20px">▸ Decisions made (1)</div>
+  <div class="ui muted" style="left:282px;top:534px;width:326px;font-size:17px;line-height:1.3">
+    <div class="row"><span class="b">#201</span><span>Accepted · Derek</span></div>
+    <div class="hand" style="font-weight:300;font-size:15px">reason recorded · read-only</div>
+  </div>
+
+  <!-- area C -->
+  <div id="z-c" data-sk="rbox" data-sw="2" style="left:644px;top:242px;width:280px;height:344px"></div>
+  <div data-sk="hatch" style="left:644px;top:242px;width:280px;height:42px"></div>
+  <div style="left:656px;top:248px"><span class="halo hand b" style="font-size:20px">All analyses (6)</span></div>
+  <div class="ui" style="left:658px;top:294px;width:252px;font-size:17.5px">
+    <div class="row" style="height:40px"><span class="b">#201</span><span>Accepted · Derek</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#202</span><span>Accepted · Maya</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#203</span><span>Awaiting engineer</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#204</span><span>Sent for rework · Maya</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#205</span><span>Awaiting engineer</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#206</span><span>Awaiting decision · Maya</span></div>
+  </div>
+  <i data-arrow="d-alltab:r:0.5 z-c:t:0.35" data-bend="-18"></i>
+
+  <!-- annotations -->
+  <div id="a3-1" class="ann" style="left:24px;top:250px;width:212px">
+    <h3><span class="num" data-sk="circle">1</span>Needs my decision</h3>
+    First and most prominent. Each card shows the system's finding and Maya's reason.
+  </div>
+  <div id="a3-2" class="ann" style="left:24px;top:494px;width:212px">
+    <h3><span class="num" data-sk="circle">2</span>Already resolved</h3>
+    Collapsed and read-only, but still traceable.
+  </div>
+  <div id="a3-3" class="ann" style="left:962px;top:330px;width:206px">
+    <h3><span class="num" data-sk="circle">3</span>Complete record</h3>
+    Every analysis, including Maya's routine decisions.
+  </div>
+  <i data-arrow="a3-1:r:0.15 z-a:l:0.2" data-bend="-10"></i>
+  <i data-arrow="a3-2:r:0.2 z-b:l:0.3" data-bend="-8"></i>
+  <i data-arrow="a3-3:l:0.2 z-c:r:0.3" data-bend="10"></i>
+
+  <div class="bottom" style="top:614px">
+    <b>Derek sees at once what needs his attention,</b> while keeping access to the complete analytical record.
+  </div>
+</section>
+
+<!-- ============ SLIDE 4 ============ -->
+<section class="slide" id="s4">
+  <h1 class="title">Derek: Enable an Informed Decision</h1>
+  <p class="sub"><b>Design decision:</b> provide enough technical evidence for independent expert judgment.</p>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:232px;top:118px;width:672px;height:478px"></div>
+  <div class="row" style="left:250px;top:124px;width:636px">
+    <span><span class="hand b" style="font-size:30px">#203</span> <span class="ui" style="font-size:16px">Batch B-1147 · Cathode coating</span></span>
+    <span class="ui" data-sk="rbox" style="font-size:16px;padding:2px 10px">Awaiting engineer · Derek</span>
+  </div>
+  <div id="d-flag" class="ui" data-sk="rbox" style="left:250px;top:170px;width:400px;height:34px;padding:4px 12px;font-size:18px"><span class="caps">System finding:</span> Mass loading above limit.</div>
+  <div id="d-maya" class="ui" data-sk="rbox" style="left:250px;top:212px;width:400px;height:34px;padding:4px 12px;font-size:18px"><span class="caps">Maya's reason:</span> Does not match what I observe</div>
+
+  <div class="hand b" style="left:250px;top:254px;font-size:21px">What the measurements show</div>
+  <div class="ui" style="left:560px;top:260px;font-size:14.5px;display:flex;gap:14px;align-items:center">
+    <span><span class="ic" data-sk="legend-spec" style="width:22px"></span> spec range</span>
+    <span><span class="ic" data-sk="legend-range" style="width:22px"></span> repeat-scan range</span>
+    <span><span class="ic" data-sk="legend-pt"></span> prediction</span>
+  </div>
+
+  <!-- measurement rows -->
+  <div id="d-props" class="ui" style="left:250px;top:292px;width:170px;font-size:18px;line-height:1.15">
+    <div style="height:70px"><div class="b">Mass loading</div><div style="font-size:22px">15.6 <span style="font-size:15px">mg/cm²</span></div></div>
+    <div style="height:70px"><div class="b">Porosity</div><div style="font-size:22px">34.0 <span style="font-size:15px">%</span></div></div>
+    <div style="height:70px"><div class="b">Sheet resistance</div><div style="font-size:22px">0.29 <span style="font-size:15px">mΩ·cm²</span></div></div>
+  </div>
+  <div id="bar-ml" data-sk="specbar" data-vmin="14.0" data-vmax="16.2" data-min="14.5" data-max="15.5" data-lo="15.50" data-hi="15.70" data-pt="15.6" data-fmt="1" style="left:424px;top:290px;width:270px;height:52px"></div>
+  <div id="bar-po" data-sk="specbar" data-vmin="30" data-vmax="38" data-min="32" data-max="36" data-lo="33.7" data-hi="34.2" data-pt="34.0" data-fmt="0" style="left:424px;top:360px;width:270px;height:52px"></div>
+  <div id="bar-sr" data-sk="specbar" data-vmin="0.15" data-vmax="0.48" data-min="0.20" data-max="0.35" data-lo="0.275" data-hi="0.295" data-pt="0.29" data-fmt="2" style="left:424px;top:430px;width:270px;height:52px"></div>
+
+  <div class="ui" style="left:712px;top:292px;width:132px;font-size:16px;line-height:1.2">
+    <div id="d-spec1" style="height:70px">spec 14.5–15.5<br>range 15.50–15.70<br><b id="d-dev" class="hand" style="font-size:16px">↑ Above limit</b></div>
+    <div id="d-spec2" style="height:70px">spec 32–36<br>range 33.7–34.2<br><span class="hand" style="font-size:16px">In spec</span></div>
+    <div id="d-spec3" style="height:70px">spec 0.20–0.35<br>range 0.28–0.30<br><span class="hand" style="font-size:16px">In spec</span></div>
+  </div>
+
+  <div data-sk="hline" style="left:250px;top:500px;width:636px;height:2px"></div>
+  <div class="hand b" style="left:250px;top:504px;font-size:19px">What happens next</div>
+  <div class="btn" data-sk="rbox" style="left:250px;top:534px;width:120px;height:40px">Accept</div>
+  <div class="btn" data-sk="rbox" style="left:380px;top:534px;width:160px;height:40px">Send for rework</div>
+  <div id="d-ctrl" class="btn" data-sk="rbox" style="left:550px;top:534px;width:200px;height:40px">Request verification</div>
+  <div class="hand" style="left:252px;top:574px;font-size:14.5px;font-weight:300">A written explanation is required to record Accept or Send for rework.</div>
+
+  <!-- left annotations -->
+  <div id="a4-1" class="ann" style="left:24px;top:128px;width:200px">
+    <h3><span class="num" data-sk="circle">1</span>Why it was flagged</h3>
+    The system's finding, in physical terms.
+  </div>
+  <div id="a4-2" class="ann" style="left:24px;top:232px;width:200px">
+    <h3><span class="num" data-sk="circle">2</span>Maya's rationale</h3>
+    Kept separate from the system's finding.
+  </div>
+  <div id="a4-3" class="ann" style="left:24px;top:350px;width:200px">
+    <h3><span class="num" data-sk="circle">3</span>Measured properties</h3>
+    Every property, not only the flagged one.
+  </div>
+  <i data-arrow="a4-1:r:0.35 d-flag:l" data-bend="-12"></i>
+  <i data-arrow="a4-2:r:0.3 d-maya:l" data-bend="10"></i>
+  <i data-arrow="a4-3:r:0.3 d-props:l:0.45" data-bend="-8"></i>
+
+  <!-- right annotations -->
+  <div id="a4-4" class="ann" style="left:930px;top:200px;width:236px">
+    <h3><span class="num" data-sk="circle">4</span>Specs vs. measured</h3>
+    Limits, point value and repeat-scan range side by side.
+  </div>
+  <div id="a4-5" class="ann" style="left:930px;top:330px;width:236px">
+    <h3><span class="num" data-sk="circle">5</span>Deviation &amp; proximity</h3>
+    How far the range sits from the limit, and which way.
+  </div>
+  <div id="a4-6" class="ann" style="left:930px;top:460px;width:236px">
+    <h3><span class="num" data-sk="circle">6</span>Expert decision controls</h3>
+    Accept, rework, or ask for more evidence.
+  </div>
+  <i data-arrow="a4-4:l:0.3 d-spec1:r:0.15" data-bend="10"></i>
+  <i data-arrow="a4-5:l:0.25 d-dev:r" data-bend="-10"></i>
+  <i data-arrow="a4-6:l:0.3 d-ctrl:r:0.5" data-bend="14"></i>
+
+  <div class="bottom" style="top:604px">
+    <b style="font-size:24px">Explainability at the domain level, not necessarily at the ML-model level.</b><br>
+    <span class="small">Unlike Maya, Derek needs the physical evidence to challenge the recommendation and decide independently.</span>
+  </div>
+</section>
+
+<!-- ============ SLIDE 5 ============ -->
+<section class="slide" id="s5">
+  <h1 class="title">How I Used AI</h1>
+  <p class="sub">AI <b>accelerated execution</b>; product judgment remained <b>human-led</b>.</p>
+
+  <div data-sk="rbox" data-sw="2.6" style="left:48px;top:120px;width:540px;height:350px"></div>
+  <div data-sk="rbox" data-sw="1.8" style="left:612px;top:120px;width:540px;height:350px"></div>
+  <div class="hand b" style="left:68px;top:126px;font-size:24px">My contribution</div>
+  <div class="hand b" style="left:632px;top:126px;font-size:24px">AI contribution</div>
+
+  <div class="ui" style="left:68px;top:166px;width:500px">
+    <div style="height:60px"><div class="b" style="font-size:20px">Interpreting user responsibilities</div><div class="hand small">Maya decides routine cases; Derek owns escalations.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Defining decision logic</div><div class="hand small">Outside spec → rework · fully inside → accept · otherwise → engineer.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Determining information hierarchy</div><div class="hand small">Dropped the 20/2-minute switch for Maya / Derek role views.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Selecting appropriate technical detail</div><div class="hand small">Kept repeat scans and lab-coupon evidence out of Maya's view.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Reviewing and refining the experience</div><div class="hand small">e.g. locked Maya's edits once a case is with the engineer.</div></div>
+  </div>
+  <div class="ui" style="left:632px;top:166px;width:500px">
+    <div style="height:60px"><div class="b" style="font-size:20px">Exploring alternative workflows</div><div class="hand small">Drafted escalation and verification flows for me to choose from.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Challenging assumptions</div><div class="hand small">Helped build an assumption register to validate with SirenOpt.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Rapid interface prototyping</div><div class="hand small">Turned my written specs into a clickable React prototype.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Code generation and iteration</div><div class="hand small">Implemented, unit-tested and deployed each revision.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Visual exploration and presentation support</div><div class="hand small">Hand-drawn interface sketches and this deck.</div></div>
+  </div>
+  <div data-sk="hline" style="left:64px;top:224px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:64px;top:284px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:64px;top:344px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:64px;top:404px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:628px;top:224px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:628px;top:284px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:628px;top:344px;width:508px;height:2px"></div>
+  <div data-sk="hline" style="left:628px;top:404px;width:508px;height:2px"></div>
+
+  <!-- process -->
+  <div class="node" id="p1" data-sk="rbox" style="left:48px;top:500px;width:180px;height:56px">Requirements</div>
+  <div class="node" id="p2" data-sk="rbox" style="left:278px;top:500px;width:190px;height:56px">Product hypothesis</div>
+  <div class="node" id="p3" data-sk="dash" style="left:518px;top:500px;width:190px;height:56px">AI-assisted prototype</div>
+  <div class="node" id="p4" data-sk="rbox" data-sw="3.2" style="left:758px;top:500px;width:170px;height:56px">Human review</div>
+  <div class="node" id="p5" data-sk="rbox" style="left:978px;top:500px;width:170px;height:56px">Refinement</div>
+  <i data-arrow="p1:r p2:l"></i>
+  <i data-arrow="p2:r p3:l"></i>
+  <i data-arrow="p3:r p4:l"></i>
+  <i data-arrow="p4:r p5:l"></i>
+  <i data-arrow="p5:b:0.5 p2:b:0.5" data-bend="-58"></i>
+  <div class="note" style="left:470px;top:604px;width:260px;font-size:16px">repeated for every revision</div>
+  <div class="note" style="left:518px;top:478px;width:190px">dashed = AI-assisted</div>
+
+  <div class="hand" style="left:48px;top:640px;width:1104px;font-size:15px;font-weight:300;text-align:center">AI output is not customer validation. Uncertainty ranges are illustrative, and the assumptions still need confirmation from SirenOpt.</div>
+</section>
+
+<script>
+(async function () {
+  await document.fonts.ready
+  await Promise.all([
+    "700 20px Kalam", "400 20px Kalam", "300 20px Kalam", "20px 'Patrick Hand'",
+  ].map((f) => document.fonts.load(f)))
+
+  const INK = '#111'
+  let seed = 7
+
+  function rr(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2)
+    return `M${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x + r} Q${x},${y + h} ${x},${y + h - r} V${y + r} Q${x},${y} ${x + r},${y} Z`
+  }
+
+  function rel(el, slide) {
+    const r = el.getBoundingClientRect()
+    const s = slide.getBoundingClientRect()
+    return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }
+  }
+
+  for (const slide of document.querySelectorAll('.slide')) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('class', 'sk')
+    svg.setAttribute('width', 1200)
+    svg.setAttribute('height', 675)
+    slide.prepend(svg)
+    const rc = rough.svg(svg)
+    const base = () => ({ stroke: INK, strokeWidth: 2, roughness: 1.1, bowing: 1, seed: seed++ })
+    const add = (n) => svg.appendChild(n)
+    const text = (x, y, str, size = 13, anchor = 'middle') => {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      t.setAttribute('x', x); t.setAttribute('y', y)
+      t.setAttribute('text-anchor', anchor)
+      t.setAttribute('font-family', 'Patrick Hand')
+      t.setAttribute('font-size', size)
+      t.setAttribute('fill', INK)
+      t.textContent = str
+      add(t)
+    }
+
+    for (const el of slide.querySelectorAll('[data-sk]')) {
+      const { x, y, w, h } = rel(el, slide)
+      const sw = parseFloat(el.dataset.sw || 2)
+      const o = { ...base(), strokeWidth: sw }
+      switch (el.dataset.sk) {
+        case 'box':
+          add(rc.rectangle(x, y, w, h, o)); break
+        case 'rbox':
+          add(rc.path(rr(x, y, w, h, 12), o)); break
+        case 'dash':
+          add(rc.path(rr(x, y, w, h, 12), { ...o, strokeLineDash: [9, 7], disableMultiStroke: true })); break
+        case 'hatch':
+          add(rc.path(rr(x, y, w, h, 12), { ...o, fill: INK, fillStyle: 'hachure', hachureGap: 8, fillWeight: 0.9, hachureAngle: -45 }))
+          break
+        case 'dark':
+          add(rc.path(rr(x, y, w, h, 10), { ...o, fill: INK, fillStyle: 'solid' }))
+          add(rc.path(rr(x + 4, y + 4, w - 8, h - 8, 8), { ...o, stroke: '#555', fill: '#444', fillStyle: 'hachure', hachureGap: 4, fillWeight: 0.6, strokeWidth: 0.6 }))
+          add(rc.path(rr(x + 10, y + 7, w - 20, h - 14, 6), { ...o, stroke: INK, fill: INK, fillStyle: 'solid', roughness: 0.4, strokeWidth: 1 }))
+          break
+        case 'tag':
+          add(rc.rectangle(x, y, w, h, { ...o, strokeWidth: 1.5, fill: '#fff', fillStyle: 'solid' })); break
+        case 'hline':
+          add(rc.line(x, y + h / 2, x + w, y + h / 2, { ...o, strokeWidth: el.dataset.dash ? 1.6 : 1.4, strokeLineDash: el.dataset.dash ? [10, 8] : undefined, roughness: 0.9 }))
+          break
+        case 'diamond':
+          add(rc.polygon([[x + w / 2, y], [x + w, y + h / 2], [x + w / 2, y + h], [x, y + h / 2]], { ...o, strokeLineDash: [6, 5], disableMultiStroke: true }))
+          break
+        case 'circle':
+          add(rc.circle(x + w / 2, y + h / 2, Math.max(w, h), { ...o, strokeWidth: 1.8 })); break
+        case 'check':
+          add(rc.linearPath([[x + 1, y + h * 0.55], [x + w * 0.4, y + h - 1], [x + w, y + 1]], { ...o, strokeWidth: 2.2, roughness: 0.7 })); break
+        case 'radio':
+          add(rc.circle(x + w / 2, y + h / 2, w - 2, { ...o, strokeWidth: 1.5, roughness: 0.6 })); break
+        case 'radio-on':
+          add(rc.circle(x + w / 2, y + h / 2, w - 2, { ...o, strokeWidth: 1.5, roughness: 0.6 }))
+          add(rc.circle(x + w / 2, y + h / 2, w / 2.4, { ...o, fill: INK, fillStyle: 'solid', strokeWidth: 1, roughness: 0.4 }))
+          break
+        case 'legend-spec':
+          add(rc.rectangle(x, y + 2, w, h - 4, { ...o, strokeWidth: 1.2, fill: INK, fillStyle: 'hachure', hachureGap: 4, fillWeight: 0.5 })); break
+        case 'legend-range':
+          add(rc.rectangle(x, y + 5, w, h - 10, { ...o, strokeWidth: 1, fill: INK, fillStyle: 'solid', roughness: 0.5 })); break
+        case 'legend-pt':
+          add(rc.circle(x + w / 2, y + h / 2, 10, { ...o, strokeWidth: 1.6, fill: '#fff', fillStyle: 'solid', roughness: 0.4 })); break
+        case 'specbar': {
+          const d = el.dataset
+          const vmin = +d.vmin, vmax = +d.vmax
+          const X = (v) => x + ((v - vmin) / (vmax - vmin)) * w
+          const mid = y + 20
+          const fmt = (v) => (+v).toFixed(+d.fmt)
+          add(rc.line(x, mid, x + w, mid, { ...o, strokeWidth: 1.2, roughness: 0.6 }))
+          add(rc.rectangle(X(+d.min), mid - 11, X(+d.max) - X(+d.min), 22, { ...o, strokeWidth: 1.4, fill: INK, fillStyle: 'hachure', hachureGap: 6, fillWeight: 0.5 }))
+          add(rc.rectangle(X(+d.lo), mid - 5, Math.max(X(+d.hi) - X(+d.lo), 4), 10, { ...o, fill: INK, fillStyle: 'solid', strokeWidth: 1.4, roughness: 0.5 }))
+          add(rc.circle(X(+d.pt), mid, 11, { ...o, fill: '#fff', fillStyle: 'solid', strokeWidth: 1.8, roughness: 0.4 }))
+          text(X(+d.min), mid + 30, fmt(d.min), 14)
+          text(X(+d.max), mid + 30, fmt(d.max), 14)
+          break
+        }
+      }
+    }
+
+    for (const el of slide.querySelectorAll('[data-arrow]')) {
+      const [from, to] = el.dataset.arrow.split(' ')
+      const pt = (spec) => {
+        const [id, side = 'c', t = '0.5'] = spec.split(':')
+        const b = rel(slide.querySelector('#' + id), slide)
+        const f = parseFloat(t)
+        if (side === 'l') return [b.x, b.y + b.h * f]
+        if (side === 'r') return [b.x + b.w, b.y + b.h * f]
+        if (side === 't') return [b.x + b.w * f, b.y]
+        if (side === 'b') return [b.x + b.w * f, b.y + b.h]
+        return [b.x + b.w / 2, b.y + b.h / 2]
+      }
+      let [x1, y1] = pt(from)
+      let [x2, y2] = pt(to)
+      const gap = parseFloat(el.dataset.gap || 7)
+      const len = Math.hypot(x2 - x1, y2 - y1)
+      const ux = (x2 - x1) / len, uy = (y2 - y1) / len
+      x1 += ux * gap; y1 += uy * gap; x2 -= ux * gap; y2 -= uy * gap
+      const bend = parseFloat(el.dataset.bend || 0)
+      const cx = (x1 + x2) / 2 - uy * bend
+      const cy = (y1 + y2) / 2 + ux * bend
+      const o = { ...base(), strokeWidth: 2, roughness: 0.8 }
+      add(rc.path(`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`, o))
+      const ang = Math.atan2(y2 - cy, x2 - cx)
+      const hl = 14, spread = 0.45
+      add(rc.line(x2, y2, x2 - hl * Math.cos(ang - spread), y2 - hl * Math.sin(ang - spread), o))
+      add(rc.line(x2, y2, x2 - hl * Math.cos(ang + spread), y2 - hl * Math.sin(ang + spread), o))
+    }
+  }
+  window.__ready = true
+})()
+</script>
+</body>
+</html>

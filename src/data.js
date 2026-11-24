@@ -647,7 +647,7 @@ export function buildEscalationSnapshot(sample, { reasonId, reasonLabel, note, a
  * Maya Accept / Send for rework while she owns the sample.
  * Rejected if the case is already escalated or owned by Derek.
  */
-export function mayaDecide(cases, sampleId, disposition, { at } = {}) {
+export function mayaDecide(cases, sampleId, disposition, { at, reason } = {}) {
   if (disposition !== DECISION.accepted && disposition !== DECISION.rework) return cases
   const current = getCase(cases, sampleId)
   if (!canMayaDecide(current)) return cases
@@ -655,6 +655,9 @@ export function mayaDecide(cases, sampleId, disposition, { at } = {}) {
     return cases
   }
   const stamped = at || nowIso()
+  const defaultReason =
+    disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.'
+  const recordedReason = reason?.trim() || defaultReason
   const next = pushHistory(
     {
       ...current,
@@ -664,20 +667,45 @@ export function mayaDecide(cases, sampleId, disposition, { at } = {}) {
         kind: disposition,
         author: ACTOR.maya,
         authorLabel: ACTOR_META.maya.label,
-        reason: disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.',
+        reason: recordedReason,
         at: stamped,
       },
       verification: null,
     },
-      {
-        type: disposition === DECISION.accepted ? 'maya_accept' : 'maya_rework',
-        actor: ACTOR.maya,
-        at: stamped,
-        reason:
-          disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.',
-      },
+    {
+      type: disposition === DECISION.accepted ? 'maya_accept' : 'maya_rework',
+      actor: ACTOR.maya,
+      at: stamped,
+      reason: recordedReason,
+    },
   )
   return writeCase(cases, sampleId, next)
+}
+
+export const MAYA_BULK_ACCEPT_REASON = 'Accepted by Maya (suggested pass, bulk)'
+
+/**
+ * Accept every sample Maya still owns whose suggestion is Accept.
+ * Never touches rework, engineer, or Derek-owned cases.
+ */
+export function mayaAcceptSuggested(cases, samples, { at } = {}) {
+  const stamped = at || nowIso()
+  const ids = []
+  let next = cases
+  samples.forEach((sample) => {
+    const current = getCase(next, sample.id)
+    if (!canMayaDecide(current)) return
+    if (sample.suggestion.kind !== 'accept') return
+    const after = mayaDecide(next, sample.id, DECISION.accepted, {
+      at: stamped,
+      reason: MAYA_BULK_ACCEPT_REASON,
+    })
+    if (after !== next) {
+      next = after
+      ids.push(sample.id)
+    }
+  })
+  return { cases: next, ids }
 }
 
 /**
@@ -1095,7 +1123,7 @@ export const PRESENTER_NOTES = {
   escalation:
     'Escalation requires a confirmed operator reason (system finding is a separate field). One in-app case per sample; no email/Slack. Verification: request → awaiting verification → record returned evidence → awaiting engineer → explicit Accept/Rework. Note-only evidence does not change measurements.',
   timeComparison:
-    'For the take-home presentation, contrast Maya’s fuller vs compact layouts offline. Do not put a 20/2-minute switch in the operational app. Live navigation remains Maya/Derek.',
+    'Maya’s header includes a 20 min / 2 min toggle. 20 min shows every measurement with a plain spec range and per-sample actions. 2 min is triage: bulk Accept for suggested passes, with rework and second looks decided one at a time. Uncertainty charts stay Derek-only.',
   assumptions:
     'Every sample needs an explicit Accept or Send for rework before review is complete. Session state clears on reload. Pending includes awaiting decision, awaiting engineer, and awaiting verification.',
 }
