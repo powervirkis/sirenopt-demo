@@ -20,7 +20,6 @@ import {
   operatorReasonDisplay,
   summarizeCases,
 } from '../data'
-import AccessibilityMenu from './AccessibilityMenu'
 import EscalationSheet from './EscalationSheet'
 import MayaQuickView from './MayaQuickView'
 import OverrideSheet from './OverrideSheet'
@@ -547,10 +546,6 @@ export default function MayaView({
   onEscalate,
   onReopen,
   statusMessage,
-  largeText,
-  highContrast,
-  onToggleLargeText,
-  onToggleHighContrast,
 }) {
   const counts = summarizeCases(samples, cases)
   const pending = samples.filter((s) => isPendingState(getCase(cases, s.id).state))
@@ -706,12 +701,6 @@ export default function MayaView({
               20 min
             </button>
           </div>
-          <AccessibilityMenu
-            largeText={largeText}
-            highContrast={highContrast}
-            onToggleLargeText={onToggleLargeText}
-            onToggleHighContrast={onToggleHighContrast}
-          />
         </div>
       </header>
 

@@ -23,7 +23,6 @@ import {
   systemPromptedProperty,
   waitingLabel,
 } from '../data'
-import AccessibilityMenu from './AccessibilityMenu'
 import SpecBar, { ChartLegend } from './SpecBar'
 
 function RescanRuler({ sample, propertyKey }) {
@@ -640,10 +639,6 @@ export default function DerekView({
   onRecordEvidence,
   onReopen,
   statusMessage,
-  largeText,
-  highContrast,
-  onToggleLargeText,
-  onToggleHighContrast,
 }) {
   const escalations = listEscalations(samples, cases)
   const openMatch = escalations.some((item) => item.sample.id === selectedId)
@@ -672,12 +667,6 @@ export default function DerekView({
             Batch {BATCH.id} · {BATCH.product}
           </p>
         </div>
-        <AccessibilityMenu
-          largeText={largeText}
-          highContrast={highContrast}
-          onToggleLargeText={onToggleLargeText}
-          onToggleHighContrast={onToggleHighContrast}
-        />
       </header>
 
       <div

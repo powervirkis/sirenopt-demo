@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import AccessibilityMenu from './components/AccessibilityMenu'
 import DerekView from './components/DerekView'
 import MayaView from './components/MayaView'
 import {
@@ -196,6 +197,16 @@ export default function App() {
           <p className="hidden text-sm text-muted sm:block">
             {role === 'maya' ? 'Batch decisions' : 'Engineering escalations'}
           </p>
+          <div className="ml-auto">
+            <AccessibilityMenu
+              largeText={display.largeText}
+              highContrast={display.highContrast}
+              onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}
+              onToggleHighContrast={() =>
+                setDisplay((d) => ({ ...d, highContrast: !d.highContrast }))
+              }
+            />
+          </div>
         </div>
       </nav>
 
@@ -211,12 +222,6 @@ export default function App() {
           onEscalate={handleEscalate}
           onReopen={handleMayaReopen}
           statusMessage={statusMessage}
-          largeText={display.largeText}
-          highContrast={display.highContrast}
-          onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}
-          onToggleHighContrast={() =>
-            setDisplay((d) => ({ ...d, highContrast: !d.highContrast }))
-          }
         />
       ) : (
         <DerekView
@@ -231,12 +236,6 @@ export default function App() {
           onRecordEvidence={handleRecordEvidence}
           onReopen={handleDerekReopen}
           statusMessage={statusMessage}
-          largeText={display.largeText}
-          highContrast={display.highContrast}
-          onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}
-          onToggleHighContrast={() =>
-            setDisplay((d) => ({ ...d, highContrast: !d.highContrast }))
-          }
         />
       )}
     </div>

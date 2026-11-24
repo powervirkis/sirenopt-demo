@@ -53,6 +53,7 @@
   .section { left: 940px; top: 20px; width: 220px; text-align: right; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 2.5px; }
   .proto { left: 940px; top: 42px; width: 220px; text-align: right; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 300; font-size: 13px; color: #555; }
   .proto-banner { display: block; z-index: 2; }
+  .url { left: 700px; top: 42px; width: 460px; text-align: right; font-family: 'Segoe UI', sans-serif; font-size: 12.5px; color: #333; text-decoration: none; }
 
   .qrow { display: grid; grid-template-columns: 40px 460px 1fr; align-items: center; gap: 0 12px; height: 82px; }
   .qa { font-family: 'Patrick Hand', 'Segoe UI', sans-serif; font-size: 21px; line-height: 1.2; }
@@ -84,9 +85,10 @@
 <section class="slide" id="s1">
   <h1 class="title">Decision Logic &amp; Assumptions</h1>
   <p class="sub">Different users need <b>different levels of information</b> to decide on the <b>same analysis</b>.</p>
-  <a class="proto-banner" href="https://sirenopt-demo-735f7c60496e.herokuapp.com/" data-sk="rbox" style="left:802px;top:18px;width:358px;height:56px;padding:6px 14px;text-decoration:none;color:#111">
-    <div class="hand b" style="font-size:15px;letter-spacing:1.5px">PART 1 · Clickable prototype ↗</div>
-    <div class="ui" style="font-size:14px;line-height:1.2">Try Maya 20/2 min · escalate #201 · open Derek</div>
+  <a class="proto-banner" href="https://sirenopt-demo-735f7c60496e.herokuapp.com/" data-sk="rbox" style="left:878px;top:12px;width:292px;height:70px;padding:5px 12px;text-decoration:none;color:#111">
+    <div class="hand b" style="font-size:14px;letter-spacing:1.2px">PART 1 · Clickable prototype ↗</div>
+    <div class="ui" style="font-size:13px;line-height:1.2">Try Maya 20/2 min · escalate #201 · Derek</div>
+    <div style="font-family:'Segoe UI',sans-serif;font-size:11.5px;margin-top:3px">sirenopt-demo-735f7c60496e.herokuapp.com</div>
   </a>
 
   <div class="lane" style="left:50px;top:124px">MAYA · REVIEWS EVERY ANALYSIS</div>
@@ -227,7 +229,7 @@
 
   <div id="m-detail" data-sk="rbox" style="left:56px;top:470px;width:668px;height:110px;padding:8px 14px">
     <div class="row"><span class="hand b" style="font-size:20px">#201 detail</span><span class="ui">Awaiting decision · Suggested: Send to engineer</span></div>
-    <div class="ui" style="font-size:16px;margin-top:4px">Porosity near limit. Spec under each value. Three actions: Accept · Rework · Engineer.</div>
+    <div class="ui" style="font-size:16px;margin-top:4px">Porosity near limit. Spec under each value.</div>
     <div id="m-ctrl" class="btn dark" data-sk="dark" style="position:absolute;left:420px;top:62px;width:220px;height:34px;font-size:15px">Send to engineer</div>
   </div>
 
@@ -359,7 +361,7 @@
   <div id="bar-sr" data-sk="specbar" data-vmin="0.15" data-vmax="0.48" data-min="0.20" data-max="0.35" data-lo="0.275" data-hi="0.295" data-pt="0.29" data-fmt="2" style="left:424px;top:430px;width:270px;height:52px"></div>
 
   <div class="ui" style="left:712px;top:292px;width:132px;font-size:16px;line-height:1.2">
-    <div id="d-spec1" style="height:70px">spec 14.5–15.5<br>range 15.46–15.70<br><b id="d-dev" class="hand" style="font-size:16px">↑ +0.10 over · Second look</b></div>
+    <div id="d-spec1" style="height:70px">spec 14.5–15.5<br>range 15.46–15.70<br><b id="d-dev" class="hand" style="font-size:16px">↑ +0.10 over limit</b></div>
     <div id="d-spec2" style="height:70px">spec 32–36<br>range 33.7–34.2<br><span class="hand" style="font-size:16px">In spec</span></div>
     <div id="d-spec3" style="height:70px">spec 0.20–0.35<br>range 0.28–0.30<br><span class="hand" style="font-size:16px">In spec</span></div>
   </div>
@@ -639,6 +641,16 @@
 
   const INK = '#111'
   let seed = 7
+
+  const PROTO = 'https://sirenopt-demo-735f7c60496e.herokuapp.com/'
+  for (const slide of document.querySelectorAll('.slide')) {
+    if (slide.querySelector('.proto-banner')) continue
+    const a = document.createElement('a')
+    a.className = 'url'
+    a.href = PROTO
+    a.textContent = `Prototype: ${PROTO.replace(/^https:\/\//, '').replace(/\/$/, '')}`
+    slide.appendChild(a)
+  }
 
   function rr(x, y, w, h, r) {
     r = Math.min(r, w / 2, h / 2)

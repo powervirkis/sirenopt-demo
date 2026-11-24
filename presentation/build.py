@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import fitz
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).parent
@@ -19,5 +20,12 @@ with sync_playwright() as p:
     page.pdf(path=str(OUT_PDF), width="1200px", height="675px", print_background=True,
              margin={"top": "0", "right": "0", "bottom": "0", "left": "0"})
     browser.close()
+
+# SumatraPDF shows Chrome's raw PDF output as a blank page; a MuPDF rewrite fixes it.
+doc = fitz.open(OUT_PDF)
+tmp = OUT_PDF.with_suffix(".tmp.pdf")
+doc.save(tmp, garbage=4, deflate=True, clean=True)
+doc.close()
+tmp.replace(OUT_PDF)
 
 print(OUT_PDF)
