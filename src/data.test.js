@@ -21,6 +21,9 @@ import {
   listEscalations,
   canMayaDecide,
   canDerekResolve,
+  chartFocusCopy,
+  queueReasonPreview,
+  historyEntries,
 } from './data'
 
 const EXPECTED_VALUES = {
@@ -229,6 +232,72 @@ describe('shared case workflow', () => {
 
   it('shows missing operator reason placeholder when absent', () => {
     expect(OPERATOR_REASON_MISSING).toMatch(/not provided/i)
+  })
+
+  it('does not attribute an operator-only escalation to a measurement property', () => {
+    const sample = SAMPLES.find((s) => s.id === 202)
+    expect(sample.suggestion.propertyKey).toBeNull()
+    expect(chartFocusCopy(sample).prompted).toBe(false)
+    expect(chartFocusCopy(sample).text).toBe('Selected property: Porosity.')
+    expect(chartFocusCopy(SAMPLES.find((s) => s.id === 201)).text).toMatch(
+      /Focusing on Porosity/,
+    )
+
+    const cases = confirmEscalation({}, sample, {
+      reasonId: 'other',
+      note: 'TEST NOTE: sample identity label does not match the coupon.',
+      at: FIXED_AT,
+    })
+    const record = getCase(cases, 202)
+    expect(record.escalation.systemFinding).toMatch(/within inclusive limits/i)
+    expect(record.escalation.operatorNote).toMatch(/TEST NOTE: sample identity/)
+    expect(queueReasonPreview(record.escalation)).toMatch(/TEST NOTE: sample identity/)
+    expect(queueReasonPreview(record.escalation)).not.toBe('Other')
+    expect(getCase({}, 206).escalation).toBeNull()
+  })
+
+  it('keeps the prior resolution inspectable after reopen', () => {
+    const sample = SAMPLES.find((s) => s.id === 202)
+    let cases = confirmEscalation({}, sample, {
+      reasonId: 'other',
+      note: 'TEST NOTE: sample identity label does not match the coupon.',
+      at: FIXED_AT,
+    })
+    cases = derekResolve(cases, 202, DECISION.accepted, {
+      reason: 'TEST EXPLANATION: identity confirmed by Derek.',
+      at: FIXED_AT,
+    })
+    expect(summarizeCases(SAMPLES, cases).complete).toBe(false)
+    cases = reopenCase(cases, 202, ACTOR.derek, { at: '2026-11-24T06:00:00.000Z' })
+    const record = getCase(cases, 202)
+    expect(record.state).toBe(DECISION.engineer)
+    expect(record.owner).toBe(ACTOR.derek)
+    expect(record.disposition).toBeNull()
+    expect(record.escalation.operatorNote).toMatch(/TEST NOTE/)
+    const entries = historyEntries(record)
+    expect(entries.some((entry) => entry.detail?.includes('TEST EXPLANATION'))).toBe(true)
+    expect(
+      entries.some(
+        (entry) => entry.title === 'Reopened' && entry.actorLabel.includes('Derek'),
+      ),
+    ).toBe(true)
+    expect(entries.find((entry) => entry.title === 'Reopened').at).toBe(
+      '2026-11-24T06:00:00.000Z',
+    )
+    expect(listEscalations(SAMPLES, cases).map((item) => item.sample.id)).toEqual([202])
+    expect(summarizeCases(SAMPLES, cases).complete).toBe(false)
+  })
+
+  it('previews a standard reason together with its note', () => {
+    const sample = SAMPLES.find((s) => s.id === 201)
+    const cases = confirmEscalation({}, sample, {
+      reasonId: 'uncertain',
+      note: 'TEST NOTE: porosity looks uneven on the edge.',
+      at: FIXED_AT,
+    })
+    const preview = queueReasonPreview(getCase(cases, 201).escalation)
+    expect(preview).toMatch(/Uncertain result/)
+    expect(preview).toMatch(/TEST NOTE: porosity looks uneven/)
   })
 })
 

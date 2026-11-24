@@ -611,7 +611,7 @@ export function summarizeDecisions(samples, cases = {}) {
   return summarizeCases(samples, cases)
 }
 
-function systemFindingText(sample) {
+export function systemFindingFor(sample) {
   if (sample.suggestion.reason) return sample.suggestion.reason
   if (sample.suggestion.kind === 'accept') return 'All three properties within inclusive limits.'
   return SUGGESTION_META[sample.suggestion.kind]?.label || 'System finding unavailable.'
@@ -633,7 +633,7 @@ export function buildEscalationSnapshot(sample, { reasonId, reasonLabel, note, a
     bands,
     specs,
     recommendationKind: sample.suggestion.kind,
-    systemFinding: systemFindingText(sample),
+    systemFinding: systemFindingFor(sample),
     operatorReasonId: reasonId || null,
     operatorReason: reasonLabel || OPERATOR_REASON_MISSING,
     operatorNote: note?.trim() || '',
@@ -669,11 +669,13 @@ export function mayaDecide(cases, sampleId, disposition, { at } = {}) {
       },
       verification: null,
     },
-    {
-      type: disposition === DECISION.accepted ? 'maya_accept' : 'maya_rework',
-      actor: ACTOR.maya,
-      at: stamped,
-    },
+      {
+        type: disposition === DECISION.accepted ? 'maya_accept' : 'maya_rework',
+        actor: ACTOR.maya,
+        at: stamped,
+        reason:
+          disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.',
+      },
   )
   return writeCase(cases, sampleId, next)
 }
@@ -713,6 +715,8 @@ export function confirmEscalation(cases, sample, { reasonId, note, at } = {}) {
       type: 'escalated',
       actor: ACTOR.maya,
       reasonId,
+      reason: reasonMeta.label,
+      note: note?.trim() || '',
       at: stamped,
     },
   )
@@ -784,6 +788,8 @@ export function requestVerification(
       type: 'verification_requested',
       actor: ACTOR.derek,
       at: stamped,
+      what: request.what,
+      method: request.method,
       responsible: request.responsible,
     },
   )
@@ -827,6 +833,9 @@ export function recordVerificationEvidence(
       actor: ACTOR.derek,
       at: stamped,
       source: returned.source,
+      findings: returned.findings,
+      notes: returned.notes,
+      numericalResults: returned.numericalResults,
     },
   )
   return writeCase(cases, sampleId, next)
@@ -880,6 +889,135 @@ export function operatorReasonDisplay(escalation) {
     return OPERATOR_REASON_MISSING
   }
   return escalation.operatorReason
+}
+
+function clipText(text, max) {
+  const clean = String(text).replace(/\s+/g, ' ').trim()
+  if (clean.length <= max) return clean
+  return `${clean.slice(0, max - 1).trimEnd()}…`
+}
+
+/** Queue line for Maya’s confirmed reason. Does not paraphrase the stored note. */
+export function queueReasonPreview(escalation) {
+  if (!escalation) return ''
+  const note = escalation.operatorNote?.trim() || ''
+  const label = escalation.operatorReason
+  const missing = !label || label === OPERATOR_REASON_MISSING
+  if (missing) return note ? clipText(note, 96) : OPERATOR_REASON_MISSING
+  if (note && (escalation.operatorReasonId === 'other' || label === 'Other')) {
+    return `Other: ${clipText(note, 96)}`
+  }
+  if (note) return `${label} — ${clipText(note, 72)}`
+  return label
+}
+
+/** Property named by the system assessment. Null when measurements did not prompt one. */
+export function systemPromptedProperty(sample) {
+  return sample?.suggestion?.propertyKey || null
+}
+
+export function selectedChartProperty(sample) {
+  return systemPromptedProperty(sample) || 'porosity'
+}
+
+export function chartFocusCopy(sample) {
+  const key = selectedChartProperty(sample)
+  const label = PROPERTIES[key]?.label || 'Porosity'
+  if (systemPromptedProperty(sample)) {
+    return {
+      prompted: true,
+      propertyKey: key,
+      label,
+      text: `Focusing on ${label} — property that prompted attention for this sample.`,
+    }
+  }
+  return {
+    prompted: false,
+    propertyKey: key,
+    label,
+    text: `Selected property: ${label}.`,
+  }
+}
+
+function historyActorLabel(actor) {
+  return ACTOR_META[actor]?.label || 'Unknown'
+}
+
+/** Compact history rows from recorded events only. */
+export function historyEntries(caseRecord) {
+  if (!caseRecord?.history?.length) return []
+  return caseRecord.history.map((event) => {
+    const actorLabel = historyActorLabel(event.actor)
+    const at = event.at || null
+    switch (event.type) {
+      case 'escalated': {
+        const reason =
+          event.reason ||
+          ESCALATION_REASONS.find((item) => item.id === event.reasonId)?.label ||
+          null
+        const note = event.note || ''
+        return {
+          title: 'Escalated',
+          actorLabel,
+          detail: [reason, note].filter(Boolean).join(' — ') || null,
+          at,
+        }
+      }
+      case 'maya_accept':
+      case 'derek_accept':
+        return {
+          title: 'Accepted',
+          actorLabel,
+          detail: event.reason || null,
+          at,
+        }
+      case 'maya_rework':
+      case 'derek_rework':
+        return {
+          title: 'Sent for rework',
+          actorLabel,
+          detail: event.reason || null,
+          at,
+        }
+      case 'verification_requested':
+        return {
+          title: 'Verification requested',
+          actorLabel,
+          detail:
+            [event.what, event.method, event.responsible].filter(Boolean).join(' · ') || null,
+          at,
+        }
+      case 'verification_returned': {
+        const parts = []
+        if (event.source && event.findings) parts.push(`${event.source}: ${event.findings}`)
+        else if (event.findings) parts.push(event.findings)
+        if (event.notes) parts.push(event.notes)
+        if ('numericalResults' in event && event.numericalResults == null) {
+          parts.push('No new measurement numbers. Original measurements unchanged.')
+        } else if (event.numericalResults) {
+          parts.push('Labeled numbers recorded separately. Original prediction unchanged.')
+        }
+        return {
+          title: 'Verification evidence recorded',
+          actorLabel,
+          detail: parts.join(' ') || null,
+          at,
+        }
+      }
+      case 'reopened': {
+        const prior = event.priorDisposition
+        const priorLabel = prior ? DECISION_META[prior.kind]?.label : null
+        const detail = prior
+          ? `Previous: ${priorLabel} by ${prior.authorLabel || 'Unknown'}${
+              prior.reason ? ` — ${prior.reason}` : ''
+            }`
+          : null
+        return { title: 'Reopened', actorLabel, detail, at }
+      }
+      default:
+        return { title: 'Recorded event', actorLabel, detail: null, at }
+    }
+  })
 }
 
 export function waitingLabel(caseRecord) {
@@ -947,7 +1085,7 @@ export function RESULT_META_FOR_ENGINEER(status) {
 /** Presenter notes — not shown in Maya’s operational UI. */
 export const PRESENTER_NOTES = {
   illustrativeData:
-    'Point estimates and specification limits come from the exercise. Uncertainty ranges (REPEAT_TICKS) and lab-coupon scatters are illustrative demo inputs, not production measurements. Current production models supply point estimates; uncertainty evidence is a proposed future capability.',
+    'Point estimates and specification limits come from the exercise. Uncertainty ranges (REPEAT_TICKS) and lab-coupon scatters are illustrative demo inputs, not production measurements. Current production models supply point estimates; uncertainty evidence is a proposed future capability. The scatter does not invent a laboratory y-value for the open sample; the screen says the laboratory reference is not yet available.',
   intervalRule:
     'Proposed prototype rules (validate with quality): inclusive specs. Entirely outside interval → Send for rework suggested; all three entirely inside → Accept suggested; otherwise (boundary overlap or missing evidence) → Send to engineer suggested. An outside interval beats engineer. Missing evidence blocks Accept. Point-estimate icons (Above/Below limit, Near limit, ✓) are separate from the sample suggestion. Suggestions never auto-record Maya’s decision.',
   boundaryCases:

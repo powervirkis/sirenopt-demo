@@ -41,8 +41,15 @@ button {
   font-family: inherit;
 }
 
-:focus-visible {
+:focus-visible,
+.focus-target:focus {
   outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+html.high-contrast :focus-visible,
+html.high-contrast .focus-target:focus {
+  outline: 3px solid #f59e0b;
   outline-offset: 2px;
 }
 
@@ -52,8 +59,10 @@ button {
   outline-offset: 3px;
 }
 
-html.high-contrast .display-toggle:focus-visible {
-  outline-color: #f59e0b;
+html.high-contrast .display-toggle:focus-visible,
+html.high-contrast .display-toggle.focus-target:focus {
+  outline: 3px solid #f59e0b;
+  outline-offset: 3px;
 }
 
 html.large-text {

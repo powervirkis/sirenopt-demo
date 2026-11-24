@@ -26,7 +26,7 @@ function SettingToggle({ label, pressed, onClick }) {
       role="menuitemcheckbox"
       aria-checked={pressed}
       onClick={onClick}
-      className={`display-toggle flex w-full min-h-12 items-center justify-between gap-3 rounded-lg border-2 px-3 text-left text-sm font-medium ${
+      className={`display-toggle focus-target flex w-full min-h-12 items-center justify-between gap-3 rounded-lg border-2 px-3 text-left text-sm font-medium ${
         pressed
           ? 'border-ink bg-ink text-white'
           : 'border-line bg-panel text-ink hover:bg-surface'
@@ -66,6 +66,7 @@ export default function AccessibilityMenu({
 }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
+  const triggerRef = useRef(null)
   const menuId = useId()
   const anyOn = largeText || highContrast
 
@@ -78,7 +79,14 @@ export default function AccessibilityMenu({
       }
     }
     const onKeyDown = (event) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key !== 'Escape') return
+      if (!rootRef.current?.contains(document.activeElement) && document.activeElement !== triggerRef.current) {
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      setOpen(false)
+      triggerRef.current?.focus()
     }
 
     document.addEventListener('pointerdown', onPointerDown)
@@ -89,16 +97,35 @@ export default function AccessibilityMenu({
     }
   }, [open])
 
+  const onMenuKeyDown = (event) => {
+    const items = [...rootRef.current.querySelectorAll('[role="menuitemcheckbox"]')]
+    if (items.length === 0) return
+    const index = items.indexOf(document.activeElement)
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      const delta = event.key === 'ArrowDown' ? 1 : -1
+      const next = index === -1 ? 0 : (index + delta + items.length) % items.length
+      items[next]?.focus()
+    } else if (event.key === 'Home') {
+      event.preventDefault()
+      items[0]?.focus()
+    } else if (event.key === 'End') {
+      event.preventDefault()
+      items[items.length - 1]?.focus()
+    }
+  }
+
   return (
     <div className="relative" ref={rootRef}>
       <button
+        ref={triggerRef}
         type="button"
         aria-label={`Accessibility settings${anyOn ? ', some options on' : ''}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((value) => !value)}
-        className={`display-toggle relative inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 ${
+        className={`display-toggle focus-target relative inline-flex min-h-12 min-w-12 items-center justify-center rounded-lg border-2 ${
           open || anyOn
             ? 'border-ink bg-ink text-white'
             : 'border-line bg-panel text-ink hover:bg-surface'
@@ -118,6 +145,7 @@ export default function AccessibilityMenu({
           id={menuId}
           role="menu"
           aria-label="Accessibility"
+          onKeyDown={onMenuKeyDown}
           className="absolute right-0 z-30 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-xl border-2 border-line bg-panel p-2 shadow-lg"
         >
           <div className="space-y-2">

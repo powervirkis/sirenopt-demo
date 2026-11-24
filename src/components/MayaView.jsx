@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ACTOR,
   ACTOR_META,
@@ -255,7 +255,7 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
         aria-pressed={engineerActive}
         aria-label={`Send sample #${sample.id} to engineer`}
         onClick={() => onEngineer(sample.id)}
-        className={`${base} col-span-2 ${emphasize('engineer', engineerActive)} ${
+        className={`${base} focus-target col-span-2 ${emphasize('engineer', engineerActive)} ${
           engineerActive
             ? 'bg-engineer text-white ring-2 ring-engineer ring-offset-2'
             : suggested === 'engineer'
@@ -270,11 +270,15 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
   )
 }
 
-function EscalatedStatus({ caseRecord }) {
+function EscalatedStatus({ sample, caseRecord }) {
   const owner = ACTOR_META[caseRecord.owner]?.short || 'Derek'
   const stateMeta = DECISION_META[caseRecord.state]
   return (
-    <div className="space-y-2 rounded-xl border border-engineer/30 bg-engineer-bg/40 p-3">
+    <div
+      tabIndex={-1}
+      data-sample-status={sample.id}
+      className="focus-target space-y-2 rounded-xl border border-engineer/30 bg-engineer-bg/40 p-3"
+    >
       <p className={`text-sm font-semibold ${stateMeta.className}`}>
         {stateMeta.label} · {owner}
       </p>
@@ -287,6 +291,9 @@ function EscalatedStatus({ caseRecord }) {
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Maya&apos;s reason</p>
         <p className="text-sm text-ink">{operatorReasonDisplay(caseRecord.escalation)}</p>
+        {caseRecord.escalation?.operatorNote ? (
+          <p className="break-words text-sm text-ink">{caseRecord.escalation.operatorNote}</p>
+        ) : null}
       </div>
       {caseRecord.state === DECISION.verification && caseRecord.verification ? (
         <p className="text-sm text-look">
@@ -393,7 +400,7 @@ function SampleCard({
 
       {escalated ? (
         <div className="mt-3 border-t border-line pt-3">
-          <EscalatedStatus caseRecord={caseRecord} />
+          <EscalatedStatus sample={sample} caseRecord={caseRecord} />
         </div>
       ) : null}
 
@@ -465,18 +472,13 @@ export default function MayaView({
     }
 
     const plan = focusPlanRef.current
-    if (!plan) return
+    if (!plan || plan.kind === 'after-escalate') return
     focusPlanRef.current = null
 
     const focusEl = (el) => {
       if (el && typeof el.focus === 'function') {
         el.focus({ preventScroll: true })
       }
-    }
-
-    if (plan.kind === 'after-escalate') {
-      focusEl(document.querySelector(`[data-sample-card="${plan.sampleId}"]`))
-      return
     }
 
     if (plan.kind === 'after-complete') {
@@ -500,6 +502,13 @@ export default function MayaView({
         ),
       )
     }
+  }, [cases, samples])
+
+  useEffect(() => {
+    const plan = focusPlanRef.current
+    if (!plan || plan.kind !== 'after-escalate') return
+    focusPlanRef.current = null
+    document.querySelector(`[data-sample-status="${plan.sampleId}"]`)?.focus()
   }, [cases, samples])
 
   const beginListMove = (id, focusKind, commit) => {

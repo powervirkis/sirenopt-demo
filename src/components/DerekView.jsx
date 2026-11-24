@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ACTOR,
   ACTOR_META,
@@ -9,14 +9,18 @@ import {
   PROPERTIES,
   PROPERTY_ORDER,
   RESULT_META_FOR_ENGINEER,
-  SUGGESTION_META,
+  systemFindingFor,
   canDerekResolve,
   canReopen,
+  chartFocusCopy,
   formatValue,
   getCase,
+  historyEntries,
   isCompletedState,
   listEscalations,
   operatorReasonDisplay,
+  queueReasonPreview,
+  systemPromptedProperty,
   waitingLabel,
 } from '../data'
 import AccessibilityMenu from './AccessibilityMenu'
@@ -121,8 +125,8 @@ function LabCouponScatter({ sample, propertyKey }) {
       <p className="mt-2 text-base leading-relaxed text-muted">
         Filled points have both a plasma prediction and a {lab.labMethod} lab value. Limited
         reference coverage can indicate weak support for a prediction in that region; it does not
-        establish a specific error or root cause. This sample has prediction only — shown as a
-        vertical guide with a labeled marker (no fabricated laboratory y-value).
+        establish a specific error or root cause. This sample has a plasma prediction only.
+        Laboratory reference not yet available, and the original measurement is unchanged.
       </p>
       <div className="mt-4 grid gap-4 lg:grid-cols-[auto_1fr]">
         <div className="overflow-x-auto">
@@ -428,6 +432,43 @@ function ResolvePanel({ sample, caseRecord, onResolve, onRequestVerification, on
   )
 }
 
+function formatRecordedTime(iso) {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return iso
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function CaseHistory({ caseRecord }) {
+  const entries = historyEntries(caseRecord)
+  if (entries.length === 0) return null
+  return (
+    <details className="rounded-xl border border-line bg-panel p-4 sm:p-5">
+      <summary className="cursor-pointer text-lg font-semibold text-ink">Case history</summary>
+      <ol className="mt-3 space-y-3">
+        {entries.map((entry, index) => (
+          <li key={`${entry.at || 'time'}-${entry.title}-${index}`} className="text-sm">
+            <p className="font-semibold text-ink">
+              {entry.title} · {entry.actorLabel}
+            </p>
+            {entry.detail ? <p className="mt-1 break-words text-ink">{entry.detail}</p> : null}
+            {entry.at ? (
+              <time className="mt-1 block text-xs text-muted" dateTime={entry.at}>
+                {formatRecordedTime(entry.at)}
+              </time>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </details>
+  )
+}
+
 function CaseDetail({
   sample,
   caseRecord,
@@ -436,8 +477,9 @@ function CaseDetail({
   onRecordEvidence,
   onReopen,
 }) {
-  const driveKey = sample.suggestion.propertyKey || 'porosity'
-  const sug = SUGGESTION_META[sample.suggestion.kind]
+  const focus = chartFocusCopy(sample)
+  const driveKey = focus.propertyKey
+  const operatorOnly = Boolean(caseRecord.escalation) && !systemPromptedProperty(sample)
   const stateMeta = DECISION_META[caseRecord.state]
   const openOwned = canDerekResolve(caseRecord)
   const completed = isCompletedState(caseRecord.state)
@@ -458,30 +500,36 @@ function CaseDetail({
           </p>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="mt-4 space-y-3">
           <div className="rounded-lg border border-line bg-surface p-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               System finding
             </p>
             <p className="mt-1 text-sm font-medium text-ink">
-              {caseRecord.escalation?.systemFinding ||
-                sample.suggestion.reason ||
-                sug.label}
+              {caseRecord.escalation?.systemFinding || systemFindingFor(sample)}
             </p>
           </div>
-          <div className="rounded-lg border border-line bg-surface p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Maya&apos;s reason
-            </p>
-            <p className="mt-1 text-sm font-medium text-ink">
-              {caseRecord.escalation
-                ? operatorReasonDisplay(caseRecord.escalation)
-                : 'Operator reason not provided.'}
-            </p>
-            {caseRecord.escalation?.operatorNote ? (
-              <p className="mt-1 text-sm text-muted">{caseRecord.escalation.operatorNote}</p>
-            ) : null}
-          </div>
+          {caseRecord.escalation ? (
+            <div
+              className={`rounded-lg border p-3 ${
+                operatorOnly
+                  ? 'border-2 border-engineer bg-engineer-bg/50'
+                  : 'border-line bg-surface'
+              }`}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Maya&apos;s reason
+              </p>
+              <p className="mt-1 text-sm font-semibold text-ink">
+                {operatorReasonDisplay(caseRecord.escalation)}
+              </p>
+              {caseRecord.escalation.operatorNote ? (
+                <p className="mt-1 break-words text-sm text-ink">
+                  {caseRecord.escalation.operatorNote}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {caseRecord.verification?.returned ? (
@@ -519,6 +567,8 @@ function CaseDetail({
         ) : null}
       </section>
 
+      <CaseHistory caseRecord={caseRecord} />
+
       <section className="rounded-xl border border-line bg-panel p-4 sm:p-5">
         <h3 className="mb-2 text-lg font-semibold text-ink">What the measurements show</h3>
         <ChartLegend />
@@ -538,8 +588,16 @@ function CaseDetail({
       </section>
 
       <p className="text-base text-muted">
-        Focusing on <strong className="text-ink">{PROPERTIES[driveKey].label}</strong> — property
-        that prompted attention for this sample.
+        {focus.prompted ? (
+          <>
+            Focusing on <strong className="text-ink">{focus.label}</strong> — property that
+            prompted attention for this sample.
+          </>
+        ) : (
+          <>
+            Selected property: <strong className="text-ink">{focus.label}</strong>.
+          </>
+        )}
       </p>
 
       <RescanRuler key={`r-${sample.id}-${driveKey}`} sample={sample} propertyKey={driveKey} />
@@ -576,11 +634,19 @@ export default function DerekView({
   onToggleHighContrast,
 }) {
   const escalations = listEscalations(samples, cases)
+  const openMatch = escalations.some((item) => item.sample.id === selectedId)
+  const escalationFocusId = openMatch ? selectedId : (escalations[0]?.sample.id ?? null)
   const selected =
-    samples.find((s) => s.id === selectedId) ||
-    (tab === 'escalations' ? escalations[0]?.sample : null) ||
-    null
+    tab === 'escalations'
+      ? samples.find((sample) => sample.id === escalationFocusId) || null
+      : samples.find((sample) => sample.id === selectedId) || null
   const caseRecord = selected ? getCase(cases, selected.id) : null
+
+  useEffect(() => {
+    if (tab !== 'escalations') return
+    if (selectedId === escalationFocusId) return
+    onSelect(escalationFocusId)
+  }, [tab, selectedId, escalationFocusId, onSelect])
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-4 pb-16 sm:p-6">
@@ -650,8 +716,7 @@ export default function DerekView({
           >
             <p className="text-lg font-semibold text-ink">No open escalations</p>
             <p className="mt-2 text-sm text-muted">
-              Maya has not sent any samples for engineering review. Use All analyses to inspect the
-              batch without changing ownership.
+              Resolved cases and other samples are available in All analyses.
             </p>
           </div>
         ) : (
@@ -672,18 +737,18 @@ export default function DerekView({
                           : 'border-line bg-panel text-ink hover:bg-surface'
                     }`}
                   >
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <span className="text-lg font-bold tabular-nums">#{sample.id}</span>
-                      <span className="text-sm font-semibold">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="shrink-0 text-lg font-bold tabular-nums">#{sample.id}</span>
+                      <span className="min-w-0 text-right text-sm font-semibold">
                         {DECISION_META[item.state].label}
                         {wait ? ` · ${wait}` : ''}
                       </span>
                     </div>
-                    <p className={`mt-1 text-sm ${active ? 'text-white/85' : 'text-muted'}`}>
+                    <p className={`mt-1 break-words text-sm ${active ? 'text-white/85' : 'text-muted'}`}>
                       System: {item.escalation?.systemFinding || sample.suggestion.reason}
                     </p>
-                    <p className={`text-sm ${active ? 'text-white/85' : 'text-muted'}`}>
-                      Maya: {operatorReasonDisplay(item.escalation)}
+                    <p className={`break-words text-sm ${active ? 'text-white/85' : 'text-muted'}`}>
+                      Maya: {queueReasonPreview(item.escalation)}
                     </p>
                   </button>
                 </li>

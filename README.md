@@ -32,7 +32,7 @@ Escalation stores a snapshot of what Maya saw, with **System finding** and **May
 
 ## Presenter notes
 
-See `PRESENTER_NOTES` in [`src/data.js`](src/data.js): illustrative uncertainty, interval rules, ownership assumption, and #203/#205 boundary cases.
+See `PRESENTER_NOTES` in [`src/data.js`](src/data.js): illustrative uncertainty, interval rules, ownership assumption, and #203/#205 boundary cases. Reference scatters do not invent a laboratory result for the current sample.
 
 ## Stack
 

@@ -1,13 +1,22 @@
-import { useEffect, useId, useRef, useState } from 'react'
-import { ESCALATION_REASONS, SUGGESTION_META } from '../data'
+import { useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { ESCALATION_REASONS, systemFindingFor } from '../data'
+import { useDialog } from '../hooks/useDialog'
 
 /**
  * Compact reason-selection step before Send to engineer.
- * Cancel leaves the sample unchanged.
+ * Cancel leaves the sample unchanged and returns focus to the trigger.
  */
 export default function EscalationSheet({ sample, onConfirm, onCancel }) {
   const titleId = useId()
   const firstRef = useRef(null)
+  const restoreFocusRef = useRef(true)
+  const containerRef = useDialog({
+    open: true,
+    onClose: onCancel,
+    initialFocusRef: firstRef,
+    restoreFocusRef,
+  })
   const [reasonId, setReasonId] = useState(
     sample.suggestion.kind === 'engineer' ? 'uncertain' : '',
   )
@@ -15,22 +24,16 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
   const reasonMeta = ESCALATION_REASONS.find((r) => r.id === reasonId)
   const needsNote = Boolean(reasonMeta?.requiresNote)
   const canSend = Boolean(reasonId) && (!needsNote || note.trim().length > 0)
-  const systemFinding = sample.suggestion.reason || SUGGESTION_META[sample.suggestion.kind]?.label
+  const systemFinding = systemFindingFor(sample)
 
-  useEffect(() => {
-    firstRef.current?.focus()
-  }, [])
+  const confirm = () => {
+    restoreFocusRef.current = false
+    onConfirm({ reasonId, note })
+  }
 
-  useEffect(() => {
-    const onKey = (event) => {
-      if (event.key === 'Escape') onCancel()
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onCancel])
-
-  return (
+  return createPortal(
     <div
+      ref={containerRef}
       className="fixed inset-0 z-40 flex items-end justify-center bg-ink/40 p-3 sm:items-center"
       role="presentation"
       onMouseDown={(event) => {
@@ -75,7 +78,7 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
                 value={reason.id}
                 checked={reasonId === reason.id}
                 onChange={() => setReasonId(reason.id)}
-                className="h-4 w-4 accent-[var(--color-engineer)]"
+                className="focus-target h-4 w-4 accent-[var(--color-engineer)]"
               />
               <span className="text-sm font-medium text-ink">{reason.label}</span>
             </label>
@@ -90,7 +93,7 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
             value={note}
             onChange={(event) => setNote(event.target.value)}
             rows={3}
-            className="mt-1 w-full rounded-lg border-2 border-line bg-panel px-3 py-2 text-sm text-ink"
+            className="focus-target mt-1 w-full rounded-lg border-2 border-line bg-panel px-3 py-2 text-sm text-ink"
             placeholder="Short context for Derek"
           />
         </label>
@@ -99,20 +102,21 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
           <button
             type="button"
             disabled={!canSend}
-            onClick={() => onConfirm({ reasonId, note })}
-            className="min-h-12 flex-1 rounded-lg bg-engineer px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={confirm}
+            className="focus-target min-h-12 flex-1 rounded-lg bg-engineer px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
           >
             Send to engineer
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="min-h-12 flex-1 rounded-lg border-2 border-line px-4 text-sm font-semibold text-ink hover:bg-surface"
+            className="focus-target min-h-12 flex-1 rounded-lg border-2 border-line px-4 text-sm font-semibold text-ink hover:bg-surface"
           >
             Cancel
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
