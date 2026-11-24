@@ -31,7 +31,13 @@ function formatProgress(sum) {
   if (sum.complete) {
     return `Batch review complete · ${sum.accepted} accepted · ${sum.rework} sent for rework`
   }
-  return `${sum.unresolved} pending · ${sum.awaiting} awaiting decision · ${sum.engineer} awaiting engineer · ${sum.verification} awaiting verification`
+  const parts = [`${sum.unresolved} to decide`]
+  if (sum.awaiting) parts.push(`${sum.awaiting} awaiting decision`)
+  if (sum.engineer) parts.push(`${sum.engineer} awaiting engineer`)
+  if (sum.verification) parts.push(`${sum.verification} awaiting verification`)
+  if (sum.accepted) parts.push(`${sum.accepted} accepted`)
+  if (sum.rework) parts.push(`${sum.rework} rework`)
+  return parts.join(' · ')
 }
 
 export default function App() {
@@ -53,11 +59,14 @@ export default function App() {
     setStatusMessage(message)
   }, [])
 
-  const handleMayaAccept = (id) => {
+  const handleMayaAccept = (id, { reason, override } = {}) => {
     setCases((prev) => {
-      const next = mayaDecide(prev, id, DECISION.accepted)
+      const next = mayaDecide(prev, id, DECISION.accepted, { reason, override })
       if (next === prev) return prev
-      announce(`Sample #${id} accepted. ${formatProgress(summarizeCases(SAMPLES, next))}`)
+      const label = override
+        ? `Sample #${id} accepted (override).`
+        : `Sample #${id} accepted.`
+      announce(`${label} ${formatProgress(summarizeCases(SAMPLES, next))}`)
       return next
     })
   }

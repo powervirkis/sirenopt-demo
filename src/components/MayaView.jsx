@@ -8,6 +8,7 @@ import {
   PROPERTIES,
   PROPERTY_ORDER,
   SUGGESTION_META,
+  VERDICT_META,
   VISUAL_META,
   canMayaDecide,
   canReopen,
@@ -15,12 +16,14 @@ import {
   getCase,
   isCompletedState,
   isPendingState,
+  mayaAcceptNeedsOverride,
   operatorReasonDisplay,
   summarizeCases,
 } from '../data'
 import AccessibilityMenu from './AccessibilityMenu'
 import EscalationSheet from './EscalationSheet'
 import MayaQuickView from './MayaQuickView'
+import OverrideSheet from './OverrideSheet'
 
 const MOVE_MS = 420
 const DROP_MS = 480
@@ -105,15 +108,6 @@ function playCardMoveAnimations(prevRects, movedId) {
       { duration: 280, easing: 'ease-out', fill: 'both' },
     )
   }
-}
-
-function MeasurementKey() {
-  return (
-    <p className="mt-2 text-sm text-muted" data-testid="measurement-key">
-      Units: Mass loading {PROPERTIES.massLoading.unit} · Sheet resistance{' '}
-      {PROPERTIES.sheetResistance.unit} · Porosity {PROPERTIES.porosity.unit}
-    </p>
-  )
 }
 
 function StatusIcon({ visual }) {
@@ -431,20 +425,114 @@ function ProgressSummary({ counts }) {
     )
   }
 
+  const parts = []
+  if (counts.awaiting) parts.push(`${counts.awaiting} awaiting decision`)
+  if (counts.engineer) parts.push(`${counts.engineer} awaiting engineer`)
+  if (counts.verification) parts.push(`${counts.verification} awaiting verification`)
+  if (counts.accepted) parts.push(`${counts.accepted} accepted`)
+  if (counts.rework) parts.push(`${counts.rework} rework`)
+
   return (
     <p
       className="rounded-xl border border-line bg-panel px-4 py-3 text-base font-medium text-ink"
       aria-live="polite"
       data-testid="decision-progress"
     >
-      <span className="font-bold">{counts.unresolved} unresolved</span>
-      <span className="text-muted">
-        {' '}
-        · {counts.awaiting} awaiting decision · {counts.engineer} awaiting engineer ·{' '}
-        {counts.verification} awaiting verification · {counts.accepted} accepted ·{' '}
-        {counts.rework} rework
-      </span>
+      <span className="font-bold">{counts.unresolved} to decide</span>
+      {parts.length > 0 ? (
+        <span className="text-muted"> · {parts.join(' · ')}</span>
+      ) : null}
     </p>
+  )
+}
+
+function BatchGlance({ samples, cases }) {
+  const scrollTo = (id) => {
+    document.querySelector(`[data-sample-card="${id}"]`)?.scrollIntoView({
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      block: 'nearest',
+    })
+  }
+
+  return (
+    <section
+      className="overflow-x-auto rounded-xl border border-line bg-panel"
+      aria-labelledby="batch-glance-heading"
+      data-testid="batch-glance"
+    >
+      <div className="border-b border-line px-4 py-3">
+        <h2 id="batch-glance-heading" className="text-lg font-bold text-ink">
+          Batch at a glance
+        </h2>
+        <p className="text-sm text-muted">
+          Pass, fail, or second look across all three properties. Open a row for the full card.
+        </p>
+      </div>
+      <table className="w-full min-w-[36rem] border-collapse text-left text-sm">
+        <thead>
+          <tr className="border-b border-line bg-surface text-muted">
+            <th className="px-4 py-2 font-semibold">Sample</th>
+            {PROPERTY_ORDER.map((key) => (
+              <th key={key} className="px-3 py-2 font-semibold">
+                {PROPERTIES[key].short}
+              </th>
+            ))}
+            <th className="px-4 py-2 font-semibold">Verdict</th>
+            <th className="px-4 py-2 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {samples.map((sample) => {
+            const caseRecord = getCase(cases, sample.id)
+            const verdict = VERDICT_META[sample.suggestion.kind]
+            const stateMeta = DECISION_META[caseRecord.state]
+            const statusLabel =
+              caseRecord.owner === ACTOR.derek
+                ? `${stateMeta.label} · ${ACTOR_META[caseRecord.owner].short}`
+                : stateMeta.label
+            return (
+              <tr
+                key={sample.id}
+                className="border-b border-line/70 last:border-b-0 hover:bg-surface/80"
+              >
+                <td className="px-4 py-2.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollTo(sample.id)}
+                    className="text-base font-bold tabular-nums text-ink underline-offset-2 hover:underline"
+                  >
+                    #{sample.id}
+                  </button>
+                </td>
+                {PROPERTY_ORDER.map((key) => {
+                  const visual = sample.visualStatus[key]
+                  const meta = VISUAL_META[visual] || VISUAL_META.unavailable
+                  return (
+                    <td key={key} className="px-3 py-2.5">
+                      <span className={`inline-flex items-baseline gap-1 font-semibold ${meta.className}`}>
+                        <span aria-hidden="true">{meta.symbol}</span>
+                        <span className="sr-only">
+                          {PROPERTIES[key].label}: {meta.meaning || meta.label || visual}
+                        </span>
+                        {meta.label ? (
+                          <span className="text-xs font-medium" aria-hidden="true">
+                            {meta.label}
+                          </span>
+                        ) : null}
+                      </span>
+                    </td>
+                  )
+                })}
+                <td className={`px-4 py-2.5 font-semibold ${verdict.className}`}>
+                  {verdict.label}
+                </td>
+                <td className={`px-4 py-2.5 text-sm ${stateMeta.className}`}>{statusLabel}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </section>
   )
 }
 
@@ -468,7 +556,9 @@ export default function MayaView({
   const pending = samples.filter((s) => isPendingState(getCase(cases, s.id).state))
   const completed = samples.filter((s) => isCompletedState(getCase(cases, s.id).state))
   const [escalateSampleId, setEscalateSampleId] = useState(null)
+  const [overrideSampleId, setOverrideSampleId] = useState(null)
   const escalateSample = samples.find((s) => s.id === escalateSampleId) || null
+  const overrideSample = samples.find((s) => s.id === overrideSampleId) || null
   const focusPlanRef = useRef(null)
   const flipRef = useRef(null)
   const isQuick = mode === '2min'
@@ -530,9 +620,24 @@ export default function MayaView({
     commit(id)
   }
 
-  const handleAccept = (id) => beginListMove(id, 'after-complete', onAccept)
+  const handleAccept = (id) => {
+    const sample = samples.find((s) => s.id === id)
+    if (sample && mayaAcceptNeedsOverride(sample)) {
+      setOverrideSampleId(id)
+      return
+    }
+    beginListMove(id, 'after-complete', onAccept)
+  }
   const handleRework = (id) => beginListMove(id, 'after-complete', onRework)
   const handleReopen = (id) => beginListMove(id, 'after-reopen', onReopen)
+  const handleConfirmOverride = ({ reason }) => {
+    if (!overrideSample) return
+    const id = overrideSample.id
+    setOverrideSampleId(null)
+    beginListMove(id, 'after-complete', (sampleId) =>
+      onAccept(sampleId, { reason, override: true }),
+    )
+  }
   const handleAcceptSuggested = () => {
     const prevRects = captureCardPositions()
     if (document.querySelector('[data-testid="decisions-separator"]')) {
@@ -571,7 +676,6 @@ export default function MayaView({
           <p className="mt-1 text-base text-muted">
             {BATCH.line} · {BATCH.product} · {BATCH.shift}
           </p>
-          {!isQuick ? <MeasurementKey /> : null}
         </div>
         <div className="flex flex-col items-stretch gap-2 sm:items-end">
           <div
@@ -611,7 +715,7 @@ export default function MayaView({
         </div>
       </header>
 
-      <ProgressSummary counts={counts} />
+      {!isQuick ? <ProgressSummary counts={counts} /> : null}
 
       {statusMessage ? (
         <p className="text-base text-muted" role="status">
@@ -631,6 +735,8 @@ export default function MayaView({
         />
       ) : (
         <>
+          <BatchGlance samples={samples} cases={cases} />
+
           <section aria-labelledby="pending-heading" data-testid="pending-section">
             <h2 id="pending-heading" className="text-lg font-bold text-ink">
               Pending decisions ({pending.length})
@@ -689,6 +795,14 @@ export default function MayaView({
           sample={escalateSample}
           onConfirm={handleConfirmEscalate}
           onCancel={() => setEscalateSampleId(null)}
+        />
+      ) : null}
+
+      {overrideSample ? (
+        <OverrideSheet
+          sample={overrideSample}
+          onConfirm={handleConfirmOverride}
+          onCancel={() => setOverrideSampleId(null)}
         />
       ) : null}
     </div>

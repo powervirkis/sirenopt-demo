@@ -88,7 +88,8 @@ export const REPEAT_TICKS = {
     sheetResistance: [0.245, 0.25, 0.255, 0.26, 0.265, 0.258, 0.262, 0.252],
   },
   203: {
-    massLoading: [15.5, 15.52, 15.55, 15.58, 15.6, 15.62, 15.65, 15.7],
+    // Straddles 15.5: some passes in spec, most above → engineer (not rework)
+    massLoading: [15.46, 15.52, 15.55, 15.58, 15.6, 15.62, 15.65, 15.7],
     porosity: [33.7, 33.8, 33.9, 34.0, 34.1, 34.2, 34.05, 33.95],
     sheetResistance: [0.275, 0.28, 0.285, 0.29, 0.295, 0.288, 0.292, 0.282],
   },
@@ -119,6 +120,8 @@ export const LAB_COUPONS = {
       { range: '>15.5', count: 4 },
     ],
     sparseNote: 'Weigh-up coupons thin above 15.4 mg/cm². Lab reference pending for this sample.',
+    // 15 of 93 coupons shown. High-end points are intentionally more scattered.
+    shownOfTotal: '15 of 93',
     points: [
       [14.6, 14.55],
       [14.7, 14.72],
@@ -132,9 +135,9 @@ export const LAB_COUPONS = {
       [15.4, 15.38],
       [15.45, 15.52],
       [15.5, 15.48],
-      [15.55, 15.62],
-      [15.6, 15.55],
-      [15.65, 15.72],
+      [15.55, 15.72],
+      [15.6, 15.42],
+      [15.65, 15.88],
     ],
     labMethod: 'weigh-up',
   },
@@ -252,6 +255,13 @@ export const SUGGESTION_META = {
     action: 'engineer',
     className: 'text-engineer',
   },
+}
+
+/** Brief vocabulary for sample verdicts (pass / fail / second look). */
+export const VERDICT_META = {
+  accept: { label: 'Pass', className: 'text-pass' },
+  rework: { label: 'Fail', className: 'text-hold' },
+  engineer: { label: 'Second look', className: 'text-engineer' },
 }
 
 /** Visual status icons for Maya (shape + text; not interactive). */
@@ -380,10 +390,15 @@ export function propertyExplanation(propertyKey, status, value, band) {
           : propertyKey === 'massLoading'
             ? `Mass loading range crosses ${limit} ${p.unit}.`
             : `Sheet resistance range crosses ${limit} ${p.unit}.`
+      // Point above limit with a straddling range: too close to call alone.
+      const shortReason =
+        value > p.max
+          ? `${p.label} just above limit, too close to call.`
+          : `${p.label} near limit.`
       return {
         status: 'caution',
         reason: short,
-        shortReason: `${p.label} near limit.`,
+        shortReason,
         text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Range overlaps upper limit.`,
       }
     }
@@ -393,10 +408,14 @@ export function propertyExplanation(propertyKey, status, value, band) {
         propertyKey === 'massLoading'
           ? `Mass loading range crosses ${limit} ${p.unit}.`
           : `${p.label} range crosses ${limit} ${p.unit}.`
+      const shortReason =
+        value < p.min
+          ? `${p.label} just below limit, too close to call.`
+          : `${p.label} near limit.`
       return {
         status: 'caution',
         reason: short,
-        shortReason: `${p.label} near limit.`,
+        shortReason,
         text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Range overlaps lower limit.`,
       }
     }
@@ -450,11 +469,15 @@ function buildSuggestion(propertyStatus, explanations, visualStatus) {
     pickPriorityKey(propertyStatus, 'caution', ['porosity', 'massLoading', 'sheetResistance'])
 
   const visual = visualStatus[key]
+  // Prefer the property explanation's shortReason (distinguishes "near limit"
+  // from "just above/below, too close to call") over generic visual labels.
   let reason = explanations[key]?.shortReason || ''
-  if (visual === 'near') reason = `${PROPERTIES[key].label} near limit.`
-  else if (visual === 'high') reason = `${PROPERTIES[key].label} above limit.`
-  else if (visual === 'low') reason = `${PROPERTIES[key].label} below limit.`
-  else if (visual === 'unavailable') reason = `${PROPERTIES[key].label} unavailable.`
+  if (!reason) {
+    if (visual === 'near') reason = `${PROPERTIES[key].label} near limit.`
+    else if (visual === 'high') reason = `${PROPERTIES[key].label} above limit.`
+    else if (visual === 'low') reason = `${PROPERTIES[key].label} below limit.`
+    else if (visual === 'unavailable') reason = `${PROPERTIES[key].label} unavailable.`
+  }
 
   return {
     kind: 'engineer',
@@ -644,10 +667,18 @@ export function buildEscalationSnapshot(sample, { reasonId, reasonLabel, note, a
 }
 
 /**
+ * True when Accept would go against a rework suggestion — needs an override reason.
+ */
+export function mayaAcceptNeedsOverride(sample) {
+  return sample?.suggestion?.kind === 'rework'
+}
+
+/**
  * Maya Accept / Send for rework while she owns the sample.
  * Rejected if the case is already escalated or owned by Derek.
+ * Pass { override: true, reason } when accepting against a rework suggestion.
  */
-export function mayaDecide(cases, sampleId, disposition, { at, reason } = {}) {
+export function mayaDecide(cases, sampleId, disposition, { at, reason, override } = {}) {
   if (disposition !== DECISION.accepted && disposition !== DECISION.rework) return cases
   const current = getCase(cases, sampleId)
   if (!canMayaDecide(current)) return cases
@@ -655,9 +686,11 @@ export function mayaDecide(cases, sampleId, disposition, { at, reason } = {}) {
     return cases
   }
   const stamped = at || nowIso()
+  const isOverride = Boolean(override) && disposition === DECISION.accepted
   const defaultReason =
     disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.'
   const recordedReason = reason?.trim() || defaultReason
+  if (isOverride && !reason?.trim()) return cases
   const next = pushHistory(
     {
       ...current,
@@ -668,6 +701,7 @@ export function mayaDecide(cases, sampleId, disposition, { at, reason } = {}) {
         author: ACTOR.maya,
         authorLabel: ACTOR_META.maya.label,
         reason: recordedReason,
+        override: isOverride || undefined,
         at: stamped,
       },
       verification: null,
@@ -677,6 +711,8 @@ export function mayaDecide(cases, sampleId, disposition, { at, reason } = {}) {
       actor: ACTOR.maya,
       at: stamped,
       reason: recordedReason,
+      override: isOverride || undefined,
+      overriddenSuggestion: isOverride ? 'rework' : undefined,
     },
   )
   return writeCase(cases, sampleId, next)
@@ -992,13 +1028,17 @@ export function historyEntries(caseRecord) {
         }
       }
       case 'maya_accept':
-      case 'derek_accept':
+      case 'derek_accept': {
+        const overrideNote = event.override
+          ? `Override of rework suggestion — ${event.reason || 'no reason'}`
+          : event.reason || null
         return {
-          title: 'Accepted',
+          title: event.override ? 'Accepted (override)' : 'Accepted',
           actorLabel,
-          detail: event.reason || null,
+          detail: overrideNote,
           at,
         }
+      }
       case 'maya_rework':
       case 'derek_rework':
         return {
@@ -1094,7 +1134,7 @@ export function RESULT_META_FOR_ENGINEER(status) {
   }
   if (status === 'caution' || status === 'review' || status === 'look') {
     return {
-      word: 'Boundary',
+      word: 'Second look',
       chip: 'bg-look-bg text-look border-look/40',
       bar: 'bg-look',
       band: 'bg-look-band/80',
@@ -1117,7 +1157,7 @@ export const PRESENTER_NOTES = {
   intervalRule:
     'Proposed prototype rules (validate with quality): inclusive specs. Entirely outside interval → Send for rework suggested; all three entirely inside → Accept suggested; otherwise (boundary overlap or missing evidence) → Send to engineer suggested. An outside interval beats engineer. Missing evidence blocks Accept. Point-estimate icons (Above/Below limit, Near limit, ✓) are separate from the sample suggestion. Suggestions never auto-record Maya’s decision.',
   boundaryCases:
-    '#203 mass 15.50–15.70 includes the upper boundary and extends above it → Above limit on the point, Send to engineer suggested. #205 mass 14.48–14.65 crosses 14.5 (two decimals in Derek). A valid interval that only touches a boundary from inside remains eligible for Accept.',
+    '#203 mass 15.46–15.70 straddles the upper limit with point 15.6 → Above limit on the point, Send to engineer suggested ("just above limit, too close to call"). Distinct from #204/#205, whose entire ranges sit outside and suggest rework. #205 mass 14.48–14.65 crosses 14.5 (two decimals in Derek). A valid interval that only touches a boundary from inside remains eligible for Accept.',
   ownership:
     'Working assumption pending SirenOpt clarification: Maya owns routine Accept/Rework. After she confirms an escalation, Derek owns resolution and may record the final disposition. Maya can see status but cannot finalize Derek-owned cases. Returning a case to Maya would require an explicit ownership transfer (not implemented). Reopen of a completed record is limited to the disposition author.',
   escalation:

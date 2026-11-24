@@ -49,6 +49,8 @@ function RescanRuler({ sample, propertyKey }) {
   const viewMin = Math.min(p.viewMin, ...ticks, p.min) - 0.05 * (p.max - p.min)
   const viewMax = Math.max(p.viewMax, ...ticks, p.max) + 0.05 * (p.max - p.min)
   const toPct = (v) => ((v - viewMin) / (viewMax - viewMin)) * 100
+  const aboveLimit = ticks.filter((t) => t > p.max).length
+  const inSpec = ticks.filter((t) => t >= p.min && t <= p.max).length
 
   return (
     <section className="rounded-xl border border-line bg-panel p-4 sm:p-5">
@@ -56,46 +58,53 @@ function RescanRuler({ sample, propertyKey }) {
         Measurement repeatability under the current setup
       </h3>
       <p className="mt-2 text-base leading-relaxed text-muted">
-        The bar is the spread of successive plasma passes on the same coupon. The mark is the
-        reported point. Repeat scans assess measurement stability under the current setup.
-        Controlled averaging of independent repeats can reduce random uncertainty; it does not by
-        itself prove accuracy against a laboratory reference.
+        Each tick is one plasma pass on the same coupon under a fixed setup. The circle is the
+        reported point. Repeat scans assess measurement stability; they do not by themselves prove
+        accuracy against a laboratory reference.
       </p>
       <div className="mt-4 rounded-lg bg-surface p-4">
         <div
-          className="relative h-14 w-full"
+          className="relative h-16 w-full"
           role="img"
           aria-label={sample.explanations[propertyKey].text}
         >
           <div
-            className="absolute top-5 h-4 rounded-sm bg-emerald-100"
+            className="absolute top-6 h-4 rounded-sm bg-emerald-100"
             style={{ left: `${toPct(p.min)}%`, width: `${toPct(p.max) - toPct(p.min)}%` }}
           />
           <div
-            className="absolute top-3 bottom-3 w-0.5 bg-slate-800"
+            className="absolute top-4 bottom-4 w-0.5 bg-slate-800"
             style={{ left: `${toPct(p.min)}%` }}
           />
           <div
-            className="absolute top-3 bottom-3 w-0.5 bg-slate-800"
+            className="absolute top-4 bottom-4 w-1 bg-slate-900"
             style={{ left: `${toPct(p.max)}%` }}
+            title={`Upper limit ${formatValue(propertyKey, p.max)}`}
           />
+          {ticks.map((tick, index) => (
+            <div
+              key={`${tick}-${index}`}
+              className="absolute top-3 bottom-5 w-0.5 bg-ink/80"
+              style={{ left: `${toPct(tick)}%` }}
+            />
+          ))}
           <div
-            className={`absolute top-4 h-6 rounded-sm border border-current/40 ${meta.band}`}
-            style={{
-              left: `${toPct(low)}%`,
-              width: `${Math.max(toPct(high) - toPct(low), 1.25)}%`,
-            }}
-          />
-          <div
-            className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white ${meta.bar}`}
+            className={`absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm ${meta.bar}`}
             style={{ left: `${toPct(value)}%` }}
           />
         </div>
-        <p className="mt-3 text-base text-ink">
-          Point {formatValue(propertyKey, value)} {p.unit} · Range{' '}
+        <p className="mt-3 text-sm text-muted">
+          | = one plasma pass · ○ reported value · thick mark = upper limit
+        </p>
+        <p className="mt-2 text-base text-ink">
+          Point {formatValue(propertyKey, value)} {p.unit} · Spread{' '}
           {formatValue(propertyKey, low, { range: true })}–
           {formatValue(propertyKey, high, { range: true })} {p.unit} · Spec{' '}
           {formatValue(propertyKey, p.min)}–{formatValue(propertyKey, p.max)} {p.unit}
+        </p>
+        <p className="mt-1 text-base font-medium text-ink">
+          {aboveLimit} of {ticks.length} passes above the {formatValue(propertyKey, p.max)} limit
+          {inSpec ? ` · ${inSpec} in spec` : ''}.
         </p>
       </div>
     </section>
@@ -217,6 +226,9 @@ function LabCouponScatter({ sample, propertyKey }) {
             ))}
           </ul>
           <p className="mt-3 text-sm font-medium text-look">{lab.sparseNote}</p>
+          {lab.shownOfTotal ? (
+            <p className="mt-2 text-xs text-muted">Scatter shows {lab.shownOfTotal} coupons.</p>
+          ) : null}
         </div>
       </div>
     </section>
@@ -757,36 +769,52 @@ export default function DerekView({
           </ul>
         )
       ) : (
-        <div
-          className="sticky top-14 z-10 -mx-4 flex flex-wrap gap-2 border-b border-line bg-surface px-4 py-2 sm:-mx-6 sm:px-6"
+        <ul
+          className="space-y-2"
           role="listbox"
-          aria-label="Select sample"
+          aria-label="All analyses"
+          data-testid="all-analyses-list"
         >
           {samples.map((s) => {
             const item = getCase(cases, s.id)
             const selectedSample = s.id === selected?.id
             const pending =
               item.state === DECISION.engineer || item.state === DECISION.verification
+            const stateMeta = DECISION_META[item.state]
+            const statusLabel =
+              item.owner === ACTOR.derek || item.disposition
+                ? `${stateMeta.label} · ${
+                    ACTOR_META[item.disposition?.author || item.owner]?.short || '—'
+                  }`
+                : stateMeta.label
             return (
-              <button
-                key={s.id}
-                type="button"
-                role="option"
-                aria-selected={selectedSample}
-                onClick={() => onSelect(s.id)}
-                className={`min-h-12 rounded-lg px-3 text-sm font-semibold tabular-nums ${
-                  selectedSample
-                    ? 'bg-ink text-white'
-                    : pending
-                      ? 'border-2 border-engineer bg-engineer-bg text-engineer'
-                      : 'border border-line text-ink hover:bg-panel'
-                }`}
-              >
-                #{s.id}
-              </button>
+              <li key={s.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selectedSample}
+                  onClick={() => onSelect(s.id)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl border-2 px-4 py-3 text-left ${
+                    selectedSample
+                      ? 'border-ink bg-ink text-white'
+                      : pending
+                        ? 'border-engineer bg-engineer-bg text-ink hover:bg-engineer-bg/80'
+                        : 'border-line bg-panel text-ink hover:bg-surface'
+                  }`}
+                >
+                  <span className="text-lg font-bold tabular-nums">#{s.id}</span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      selectedSample ? 'text-white/90' : stateMeta.className
+                    }`}
+                  >
+                    {statusLabel}
+                  </span>
+                </button>
+              </li>
             )
           })}
-        </div>
+        </ul>
       )}
 
       {selected && caseRecord ? (

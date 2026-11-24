@@ -23,6 +23,7 @@ import {
   listEscalations,
   canMayaDecide,
   canDerekResolve,
+  mayaAcceptNeedsOverride,
   chartFocusCopy,
   queueReasonPreview,
   historyEntries,
@@ -70,9 +71,20 @@ describe('suggestions', () => {
 
   it('keeps #203 above-limit point with engineer suggestion', () => {
     const s = SAMPLES.find((x) => x.id === 203)
+    expect(s.bands.massLoading.low).toBe(15.46)
+    expect(s.bands.massLoading.high).toBe(15.7)
     expect(s.visualStatus.massLoading).toBe('high')
     expect(s.propertyStatus.massLoading).toBe('caution')
     expect(s.suggestion.kind).toBe('engineer')
+    expect(s.suggestion.reason).toMatch(/just above limit, too close to call/i)
+  })
+
+  it('uses distinct wording for entirely-outside vs straddling ranges', () => {
+    const rework = SAMPLES.find((x) => x.id === 204)
+    const engineer = SAMPLES.find((x) => x.id === 203)
+    expect(rework.suggestion.reason).toMatch(/above limit/i)
+    expect(rework.suggestion.reason).not.toMatch(/too close to call/i)
+    expect(engineer.suggestion.reason).toMatch(/too close to call/i)
   })
 
   it('keeps #205 resistance rework despite mass near limit', () => {
@@ -130,6 +142,34 @@ describe('mayaAcceptSuggested', () => {
     const second = mayaAcceptSuggested(first.cases, SAMPLES, { at: FIXED_AT })
     expect(second.ids).toEqual([])
     expect(second.cases).toBe(first.cases)
+  })
+})
+
+describe('maya override accept', () => {
+  it('flags rework suggestions as needing an override reason', () => {
+    expect(mayaAcceptNeedsOverride(SAMPLES.find((s) => s.id === 204))).toBe(true)
+    expect(mayaAcceptNeedsOverride(SAMPLES.find((s) => s.id === 202))).toBe(false)
+    expect(mayaAcceptNeedsOverride(SAMPLES.find((s) => s.id === 201))).toBe(false)
+  })
+
+  it('rejects accept-against-rework without a reason', () => {
+    const sample = SAMPLES.find((s) => s.id === 204)
+    const cases = mayaDecide({}, sample.id, DECISION.accepted, { override: true, at: FIXED_AT })
+    expect(getCase(cases, 204).state).toBe(DECISION.awaiting)
+  })
+
+  it('records an override accept with reason in history', () => {
+    const sample = SAMPLES.find((s) => s.id === 204)
+    const cases = mayaDecide({}, sample.id, DECISION.accepted, {
+      override: true,
+      reason: 'Coupon re-check looked fine.',
+      at: FIXED_AT,
+    })
+    const c = getCase(cases, 204)
+    expect(c.state).toBe(DECISION.accepted)
+    expect(c.disposition.override).toBe(true)
+    expect(historyEntries(c)[0].title).toBe('Accepted (override)')
+    expect(historyEntries(c)[0].detail).toMatch(/Override of rework suggestion/)
   })
 })
 

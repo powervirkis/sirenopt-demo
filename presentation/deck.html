@@ -49,6 +49,33 @@
   .bottom { left: 48px; width: 1104px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-size: 21px; line-height: 1.25; }
   .bottom b { font-weight: 700; }
   .small { font-size: 16px; font-weight: 300; }
+
+  .section { left: 940px; top: 20px; width: 220px; text-align: right; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 2.5px; }
+  .proto { left: 940px; top: 42px; width: 220px; text-align: right; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 300; font-size: 13px; color: #555; }
+  .proto-banner { display: block; z-index: 2; }
+
+  .qrow { display: grid; grid-template-columns: 40px 460px 1fr; align-items: center; gap: 0 12px; height: 82px; }
+  .qa { font-family: 'Patrick Hand', 'Segoe UI', sans-serif; font-size: 21px; line-height: 1.2; }
+  .qt { font-family: 'Kalam', 'Segoe UI', sans-serif; font-size: 18px; line-height: 1.25; padding-left: 26px; }
+  .qi { margin-bottom: 34px; font-family: 'Patrick Hand', 'Segoe UI', sans-serif; font-size: 23px; line-height: 1.25; }
+  .qi b { display: block; }
+  .qi span { display: block; margin-top: 8px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-size: 19px; font-weight: 300; }
+
+  .lab { display: flex; flex-direction: column; line-height: 1.05; }
+  .lab small { font-size: 13.5px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 300; }
+
+  .qrow2 { width: 546px; height: 50px; padding: 4px 12px; display: flex; align-items: center; justify-content: space-between; font-family: 'Patrick Hand', 'Segoe UI', sans-serif; font-size: 18px; line-height: 1.1; }
+  .qrow2 small { display: block; font-size: 15px; font-family: 'Kalam', 'Segoe UI', sans-serif; font-weight: 300; }
+  .qb { display: flex; gap: 6px; }
+  .mini { display: inline-flex; align-items: center; justify-content: center; width: 70px; height: 30px; font-size: 14.5px; }
+  .mini.dark { color: #fff; }
+
+  .ann.u h3 { font-size: 20px; }
+  .ann.u { font-size: 18px; }
+
+  .bar { display: grid; grid-template-columns: 80px 170px 30px; align-items: center; height: 36px; }
+  .bar i { display: block; height: 18px; }
+  .bar b { font-family: 'Kalam', 'Segoe UI', sans-serif; }
 </style>
 </head>
 <body>
@@ -57,6 +84,10 @@
 <section class="slide" id="s1">
   <h1 class="title">Decision Logic &amp; Assumptions</h1>
   <p class="sub">Different users need <b>different levels of information</b> to decide on the <b>same analysis</b>.</p>
+  <a class="proto-banner" href="https://sirenopt-demo-735f7c60496e.herokuapp.com/" data-sk="rbox" style="left:802px;top:18px;width:358px;height:56px;padding:6px 14px;text-decoration:none;color:#111">
+    <div class="hand b" style="font-size:15px;letter-spacing:1.5px">PART 1 · Clickable prototype ↗</div>
+    <div class="ui" style="font-size:14px;line-height:1.2">Try Maya 20/2 min · escalate #201 · open Derek</div>
+  </a>
 
   <div class="lane" style="left:50px;top:124px">MAYA · REVIEWS EVERY ANALYSIS</div>
   <div data-sk="hline" data-dash="1" style="left:40px;top:274px;width:1120px;height:2px"></div>
@@ -102,168 +133,203 @@
   <div data-sk="dash" style="left:802px;top:420px;width:358px;height:232px;padding:14px 20px">
     <div class="hand b" style="font-size:23px;margin-bottom:6px;display:flex;align-items:center;gap:8px"><span class="num" data-sk="circle">!</span>Working assumption</div>
     <p class="ui" style="font-size:18.5px;line-height:1.3"><b>Near limit → escalate.</b> If the value is within spec but its uncertainty range crosses a limit, Maya sends it to Derek.</p>
-    <p class="hand" style="font-size:15.5px;line-height:1.3;margin-top:8px;font-weight:300">e.g. #201 porosity 35.6%, range 35.2–36.1% vs. spec 32–36%. SirenOpt: reasonable assumptions are fine; the assessment doesn't depend on them.</p>
+    <p class="hand" style="font-size:15.5px;line-height:1.3;margin-top:8px;font-weight:300">e.g. #201 porosity 35.6%, range 35.2–36.1% vs. spec 32–36%. Still to validate with technicians and quality.</p>
   </div>
 </section>
 
-<!-- ============ SLIDE 2 ============ -->
-<section class="slide" id="s2">
-  <h1 class="title">Maya: Simplify the Decision</h1>
-  <p class="sub"><b>Design decision:</b> minimize cognitive load without compromising decision quality.</p>
+<!-- ============ PART 1 · Q1 ============ -->
+<section class="slide" id="q1">
+  <h1 class="title">What I'd Validate First</h1>
+  <p class="sub"><b>Q:</b> Which assumptions would I check with a real technician or engineer, and how?</p>
+  <div class="section">PART 1</div>
 
-  <!-- sketch -->
-  <div data-sk="rbox" data-sw="2.4" style="left:48px;top:118px;width:590px;height:486px"></div>
+  <div data-sk="rbox" data-sw="2.2" style="left:40px;top:122px;width:1120px;height:476px"></div>
+  <div data-sk="vline" style="left:556px;top:132px;width:2px;height:456px"></div>
+  <div class="hand b" style="left:66px;top:128px;font-size:22px">Assumption</div>
+  <div class="hand b" style="left:582px;top:128px;font-size:22px">How I'd test it</div>
+  <div data-sk="hline" style="left:56px;top:164px;width:1088px;height:2px"></div>
+
+  <div style="left:56px;top:170px;width:1088px">
+    <div class="qrow"><span class="num" data-sk="circle">1</span><div class="qa">The unit of decision is the sample, not the batch.</div><div class="qt">Ask Maya and the quality manager: does one fail flag the batch, or can the rest ship? Her quote is about the batch.</div></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="qrow"><span class="num" data-sk="circle">2</span><div class="qa">Maya reads "near limit" as "don't decide alone."</div><div class="qt">Walk technicians through 10 borderline cases. Compare their calls and what each mistake costs.</div></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="qrow"><span class="num" data-sk="circle">3</span><div class="qa">In 2 minutes, bulk-accepting suggested passes is safe.</div><div class="qt">Timed task on the prototype: the same batch at 2 and 20 minutes. Count errors, misses and escalations.</div></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="qrow"><span class="num" data-sk="circle">4</span><div class="qa">Eight repeat passes fit inside the line's cycle time.</div><div class="qt">Ask process engineering: how long is one plasma pass, and how many can the takt time absorb?</div></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="qrow"><span class="num" data-sk="circle">5</span><div class="qa">Once escalated, Derek owns the final decision.</div><div class="qt">Check with the quality manager and the SOPs: who may sign off a disposition, and what the audit trail needs.</div></div>
+  </div>
+
+  <div class="bottom" style="top:612px">
+    <b>Cheapest first:</b> shadowing and interviews before any UI, then timed tasks with the clickable prototype.
+  </div>
+</section>
+
+<!-- ============ PART 1 · Q2 ============ -->
+<section class="slide" id="q2">
+  <h1 class="title">What I Simplified or Hid</h1>
+  <p class="sub"><b>Q:</b> What did I deliberately simplify, omit or hide, and why?</p>
+  <div class="section">PART 1</div>
+
+  <div data-sk="rbox" data-sw="2.6" style="left:40px;top:122px;width:358px;height:476px;padding:16px 20px">
+    <div class="hand b" style="font-size:24px;margin-bottom:10px">Hidden from Maya</div>
+    <div class="qi"><b>Uncertainty ranges, repeat scans, lab-reference charts.</b><span>Why: she needs a decision, not evidence to interpret. Derek sees all of it.</span></div>
+    <div class="qi"><b>Any confidence %, for anyone.</b><span>Why: Maya can't act on it, and Derek doesn't trust it.</span></div>
+    <div class="qi"><b>Override of a fail suggestion needs a reason.</b><span>Why: Accept against rework is the costly mistake — keep it intentional and traceable.</span></div>
+  </div>
+  <div data-sk="rbox" style="left:421px;top:122px;width:358px;height:476px;padding:16px 20px">
+    <div class="hand b" style="font-size:24px;margin-bottom:10px">Simplified</div>
+    <div class="qi"><b>Uncertainty becomes three outcomes: pass, fail, second look.</b><span>One rule: is the range inside, across or outside the spec? Easy to explain, and quality can tune it.</span></div>
+    <div class="qi"><b>"Range" = min–max of eight passes, not a ± interval.</b><span>Why: Derek can see the raw spread. A statistical CI would imply precision we don't have yet.</span></div>
+    <div class="qi"><b>Escalation reason: five fixed choices plus an optional note.</b><span>Why: fast for Maya, and easy for Derek to sort.</span></div>
+  </div>
+  <div data-sk="dash" style="left:802px;top:122px;width:358px;height:476px;padding:16px 20px">
+    <div class="hand b" style="font-size:24px;margin-bottom:10px">Left out</div>
+    <div class="qi"><b>Batch release, trends across batches, shift handover, notifications, accounts.</b><span>Why: outside this results screen.</span></div>
+    <div class="qi"><b>Real uncertainty data.</b><span>Ranges and lab coupons are illustrative; production models output point values today. The brief asks to design as if the signal existed.</span></div>
+  </div>
+
+  <div class="bottom" style="top:612px">
+    <b>Rule of thumb:</b> show each person only what changes their next action.
+  </div>
+</section>
+
+<!-- ============ MAYA 20 MIN ============ -->
+<section class="slide" id="s2">
+  <h1 class="title">Maya, 20 min: Check Every Sample</h1>
+  <p class="sub"><b>Design decision:</b> see the whole batch first, then open any sample for detail.</p>
+  <div class="section">PART 2</div>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:40px;top:112px;width:700px;height:486px"></div>
+  <div data-sk="hatch" style="left:40px;top:112px;width:700px;height:52px"></div>
+  <div style="left:56px;top:118px"><span class="halo hand b" style="font-size:26px">Batch B-1147 · at a glance</span></div>
+  <div class="btn" data-sk="rbox" data-fill="1" style="left:546px;top:122px;width:78px;height:34px;font-size:16px;background:#fff;border-radius:10px">2 min</div>
+  <div class="btn dark" data-sk="dark" style="left:632px;top:122px;width:88px;height:34px;font-size:16px">20 min</div>
+
+  <div class="ui" style="left:56px;top:176px;width:668px;font-size:15px">
+    <div class="row" style="height:28px;font-family:'Kalam','Segoe UI',sans-serif;font-weight:700">
+      <span style="width:70px">Sample</span><span style="width:130px">Mass</span><span style="width:150px">Porosity</span><span style="width:150px">Sheet R</span><span style="width:120px">Verdict</span>
+    </div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div id="m-r201" class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#201</span><span style="width:130px">15.1 ✓</span><span style="width:150px">35.6% ! Near</span><span style="width:150px">0.31 ✓</span><span id="m-v201" class="b" style="width:120px;color:#1d4ed8">Second look</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#202</span><span style="width:130px">14.9 ✓</span><span style="width:150px">33.2% ✓</span><span style="width:150px">0.26 ✓</span><span class="b" style="width:120px;color:#15803d">Pass</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#203</span><span style="width:130px">15.6 ↑ Above</span><span style="width:150px">34.0% ✓</span><span style="width:150px">0.29 ✓</span><span class="b" style="width:120px;color:#1d4ed8">Second look</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#204</span><span style="width:130px">15.0 ✓</span><span style="width:150px">36.4% ↑ Above</span><span style="width:150px">0.24 ✓</span><span class="b" style="width:120px;color:#b91c1c">Fail</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#205</span><span style="width:130px">14.6 ! Near</span><span style="width:150px">32.5% ✓</span><span style="width:150px">0.41 ↑ Above</span><span class="b" style="width:120px;color:#b91c1c">Fail</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#206</span><span style="width:130px">15.2 ✓</span><span style="width:150px">34.8% ✓</span><span style="width:150px">0.30 ✓</span><span class="b" style="width:120px;color:#15803d">Pass</span></div>
+  </div>
+
+  <div id="m-detail" data-sk="rbox" style="left:56px;top:470px;width:668px;height:110px;padding:8px 14px">
+    <div class="row"><span class="hand b" style="font-size:20px">#201 detail</span><span class="ui">Awaiting decision · Suggested: Send to engineer</span></div>
+    <div class="ui" style="font-size:16px;margin-top:4px">Porosity near limit. Spec under each value. Three actions: Accept · Rework · Engineer.</div>
+    <div id="m-ctrl" class="btn dark" data-sk="dark" style="position:absolute;left:420px;top:62px;width:220px;height:34px;font-size:15px">Send to engineer</div>
+  </div>
+
+  <div id="a2-1" class="ann" style="left:770px;top:118px;width:390px">
+    <h3><span class="num" data-sk="circle">1</span>Whole batch first</h3>
+    Six samples × three properties × one verdict. Answers "what passes / fails / needs a second look" without scrolling.
+  </div>
+  <div id="a2-2" class="ann" style="left:770px;top:240px;width:390px">
+    <h3><span class="num" data-sk="circle">2</span>Same three verdicts</h3>
+    Pass · Fail · Second look. Marks are point + range cues; the verdict is the suggestion she can still override.
+  </div>
+  <div id="a2-3" class="ann" style="left:770px;top:360px;width:390px">
+    <h3><span class="num" data-sk="circle">3</span>Open any row for detail</h3>
+    Specs, reason, and three actions. Escalating asks for her reason — not pre-filled.
+  </div>
+  <div id="a2-4" class="ann" style="left:770px;top:480px;width:390px">
+    <h3><span class="num" data-sk="circle">4</span>Scales to larger batches</h3>
+    Glance table stays; cards become the drill-down. Same idea for 60 samples.
+  </div>
+  <i data-arrow="a2-1:l:0.25 m-r201:r:0.5" data-bend="-8"></i>
+  <i data-arrow="a2-2:l:0.25 m-v201:r:0.5" data-bend="6"></i>
+  <i data-arrow="a2-3:l:0.25 m-ctrl:r:0.5" data-bend="10"></i>
+
+  <div class="bottom" style="top:614px;width:1100px">
+    <b>20 minutes buys overview + detail,</b> not a longer list of the same cards.
+  </div>
+</section>
+
+<!-- ============ MAYA 2 MIN ============ -->
+<section class="slide" id="m2">
+  <h1 class="title">Maya, 2 min: Triage the Batch</h1>
+  <p class="sub"><b>Design decision:</b> same rules and records, grouped by verdict so the batch clears in one pass.</p>
+  <div class="section">PART 2</div>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:48px;top:118px;width:590px;height:488px"></div>
   <div data-sk="hatch" style="left:48px;top:118px;width:590px;height:64px"></div>
   <div style="left:66px;top:126px"><span class="halo hand b" style="font-size:30px">Batch B-1147</span></div>
-  <div class="ui" style="left:400px;top:140px"><span class="halo" style="font-size:16px">Line 2 · Cathode coating</span></div>
+  <div class="btn dark" data-sk="dark" style="left:446px;top:133px;width:78px;height:34px;font-size:16px">2 min</div>
+  <div class="btn" data-sk="rbox" data-fill="1" style="left:532px;top:133px;width:88px;height:34px;font-size:16px;background:#fff;border-radius:10px">20 min</div>
 
-  <div id="m-pending" class="hand b" style="left:72px;top:190px;font-size:22px">Pending decisions (6)</div>
+  <div id="q-count" class="ui" style="left:72px;top:190px;font-size:19px"><b>6 to decide</b> · 2 pass · 2 fail · 2 second look</div>
 
-  <div data-sk="rbox" style="left:70px;top:226px;width:546px;height:320px"></div>
-  <div class="row" style="left:88px;top:232px;width:512px">
-    <span class="hand b" style="font-size:26px">#201</span>
-    <span id="m-status" class="ui" style="font-size:19px">Awaiting decision</span>
-  </div>
-  <div class="ui" style="left:88px;top:270px;width:512px;font-size:19px">
-    <div class="row" style="height:31px"><span>Mass loading</span><span style="font-size:21px">15.1 <span class="ic" data-sk="check"></span></span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:31px;padding-top:2px"><span>Porosity</span><span style="font-size:21px">35.6% <b class="hand">! Near limit</b></span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:31px;padding-top:2px"><span>Sheet resistance</span><span style="font-size:21px">0.31 <span class="ic" data-sk="check"></span></span></div>
-  </div>
-  <div data-sk="hline" style="left:88px;top:374px;width:512px;height:2px"></div>
-  <div id="m-rec" class="hand b" style="left:88px;top:380px;width:512px;font-size:21px">Suggested: Send to engineer</div>
-  <div id="m-why" class="ui" style="left:88px;top:410px;width:512px;font-size:19px">Porosity near limit.</div>
+  <div class="hand b" style="left:72px;top:224px;font-size:21px">Ready to accept (2)</div>
+  <div class="btn" data-sk="rbox" style="left:72px;top:258px;width:66px;height:36px;font-size:18px">#202</div>
+  <div class="btn" data-sk="rbox" style="left:146px;top:258px;width:66px;height:36px;font-size:18px">#206</div>
+  <div id="q-bulk" class="btn dark" data-sk="dark" style="left:366px;top:254px;width:250px;height:42px;font-size:18px">Accept 2 suggested passes</div>
 
-  <div class="btn" data-sk="rbox" style="left:88px;top:440px;width:250px">Accept</div>
-  <div class="btn" data-sk="rbox" style="left:350px;top:440px;width:250px">Send for rework</div>
-  <div id="m-ctrl" class="btn dark" data-sk="dark" style="left:88px;top:492px;width:512px">Send to engineer</div>
-  <div class="caps hand b" data-sk="tag" style="left:500px;top:482px;padding:0 6px;font-size:11px;line-height:18px;background:#fff">Suggested</div>
+  <div class="hand b" style="left:72px;top:308px;font-size:21px">Needs your decision (4)</div>
 
-  <div data-sk="rbox" style="left:70px;top:556px;width:546px;height:32px"></div>
-  <div class="row ui" style="left:88px;top:559px;width:512px;font-size:17px"><span class="b">#202</span><span>Suggested: Accept</span><span>Awaiting decision</span></div>
+  <div id="q-r204" class="qrow2" data-sk="rbox" style="left:70px;top:342px">
+    <div><b>#204</b> · Fail · Rework suggested<small>Porosity above limit.</small></div>
+    <div class="qb"><span class="mini" data-sk="rbox">Accept</span><span class="mini dark" data-sk="dark">Rework</span><span class="mini" data-sk="rbox">Engineer</span></div>
+  </div>
+  <div id="q-r205" class="qrow2" data-sk="rbox" style="left:70px;top:400px">
+    <div><b>#205</b> · Fail · Rework suggested<small>Sheet resistance above limit.</small></div>
+    <div class="qb"><span class="mini" data-sk="rbox">Accept</span><span class="mini dark" data-sk="dark">Rework</span><span class="mini" data-sk="rbox">Engineer</span></div>
+  </div>
+  <div id="q-r201" class="qrow2" data-sk="rbox" style="left:70px;top:458px">
+    <div><b>#201</b> · Second look<small>Porosity near limit.</small></div>
+    <div class="qb"><span class="mini" data-sk="rbox">Accept</span><span class="mini" data-sk="rbox">Rework</span><span class="mini dark" data-sk="dark">Engineer</span></div>
+  </div>
+  <div id="q-r203" class="qrow2" data-sk="rbox" style="left:70px;top:516px">
+    <div><b>#203</b> · Second look<small>Mass loading just above limit, too close to call.</small></div>
+    <div class="qb"><span class="mini" data-sk="rbox">Accept</span><span class="mini" data-sk="rbox">Rework</span><span class="mini dark" data-sk="dark">Engineer</span></div>
+  </div>
+  <div class="hand b" style="left:72px;top:574px;font-size:19px">▸ Decisions made (0)</div>
 
-  <!-- escalation sheet -->
-  <div id="m-sheet" data-sk="rbox" data-sw="2.2" style="left:902px;top:424px;width:258px;height:216px"></div>
-  <div data-sk="hatch" style="left:902px;top:424px;width:258px;height:36px"></div>
-  <div style="left:912px;top:428px"><span class="halo hand b" style="font-size:18px">Send #201 to engineer</span></div>
-  <div class="ui" style="left:916px;top:466px;width:232px;font-size:15.5px;line-height:1.3">
-    <div class="caps" style="font-size:11px">System finding</div>
-    <div>Porosity near limit.</div>
-    <div class="caps" style="font-size:11px;margin-top:5px">Maya's reason</div>
-    <div><span class="ic" data-sk="radio-on"></span> Uncertain result</div>
-    <div><span class="ic" data-sk="radio"></span> Does not match what I observe</div>
-    <div><span class="ic" data-sk="radio"></span> Unexpected for this batch …</div>
+  <div class="hand b" style="left:700px;top:112px;font-size:23px">What changed vs. 20 min</div>
+  <div id="a5-1" class="ann" style="left:700px;top:148px;width:450px">
+    <h3><span class="num" data-sk="circle">1</span>Grouped by verdict</h3>
+    Passes first, then problems, instead of sample order.
   </div>
-  <div class="btn dark" data-sk="dark" style="left:1020px;top:600px;width:126px;height:30px;font-size:15px">Send</div>
-  <div class="ui" style="left:916px;top:606px;font-size:14px">+ optional note</div>
-  <i data-arrow="m-ctrl:r:0.5 m-sheet:l:0.55" data-bend="-30"></i>
+  <div id="a5-2" class="ann" style="left:700px;top:230px;width:450px">
+    <h3><span class="num" data-sk="circle">2</span>One tap for passes</h3>
+    Bulk accept exists only for suggested passes, and is recorded as bulk.
+  </div>
+  <div id="a5-3" class="ann" style="left:700px;top:322px;width:450px">
+    <h3><span class="num" data-sk="circle">3</span>One line per problem</h3>
+    No measurement rows. The reason names the property.
+  </div>
+  <div id="a5-4" class="ann" style="left:700px;top:410px;width:450px">
+    <h3><span class="num" data-sk="circle">4</span>Worst first</h3>
+    Fail before second looks. Accept against Fail asks for an override reason.
+  </div>
+  <i data-arrow="a5-1:l:0.25 q-count:r:0.5" data-bend="-12"></i>
+  <i data-arrow="a5-2:l:0.25 q-bulk:r:0.5" data-bend="10"></i>
+  <i data-arrow="a5-3:l:0.25 q-r204:r:0.4" data-bend="-8"></i>
+  <i data-arrow="a5-4:l:0.3 q-r201:r:0.4" data-bend="8"></i>
 
-  <!-- annotations -->
-  <div id="a2-1" class="ann" style="left:700px;top:118px;width:450px">
-    <h3><span class="num" data-sk="circle">1</span>Clear analysis status</h3>
-    What is waiting on her, and how much of the batch is left.
+  <div data-sk="dash" style="left:700px;top:492px;width:460px;height:106px;padding:10px 16px">
+    <div class="hand b" style="font-size:19px">What stays the same</div>
+    <div class="ui" style="font-size:16.5px;line-height:1.3">Same rule and records · Maya still decides every sample · escalation still needs a reason · switch back to 20 min any time.</div>
   </div>
-  <div id="a2-2" class="ann" style="left:700px;top:206px;width:450px">
-    <h3><span class="num" data-sk="circle">2</span>Recommended action</h3>
-    One suggestion. It never records a decision for her.
-  </div>
-  <div id="a2-3" class="ann" style="left:700px;top:294px;width:450px">
-    <h3><span class="num" data-sk="circle">3</span>Short, plain explanation</h3>
-    Why, in one line, tied to the property that matters.
-  </div>
-  <div id="a2-4" class="ann" style="left:700px;top:372px;width:190px">
-    <h3><span class="num" data-sk="circle">4</span>Simple controls</h3>
-    Three choices. Escalating asks for a reason, so Derek gets context.
-  </div>
-  <i data-arrow="a2-1:l:0.3 m-status:r" data-bend="16"></i>
-  <i data-arrow="a2-2:l:0.3 m-rec:r" data-bend="16"></i>
-  <i data-arrow="a2-3:l:0.3 m-why:r" data-bend="-10"></i>
-  <i data-arrow="a2-4:l:0.2 m-ctrl:r:0.3" data-bend="-14"></i>
-
-  <div class="bottom" style="top:612px;width:840px">
-    <b>Maya shouldn't have to interpret ML output or inspect every physical measurement to make a routine decision.</b>
-  </div>
-</section>
-
-<!-- ============ SLIDE 3 ============ -->
-<section class="slide" id="s3">
-  <h1 class="title">Derek: Prioritize Escalations</h1>
-  <p class="sub"><b>Design decision:</b> organize the interface around <b>required action</b>, not data availability.</p>
-
-  <div data-sk="rbox" data-sw="2.4" style="left:250px;top:118px;width:690px;height:486px"></div>
-  <div data-sk="hatch" style="left:250px;top:118px;width:690px;height:58px"></div>
-  <div style="left:266px;top:126px"><span class="halo hand b" style="font-size:27px">Engineering evidence</span></div>
-  <div class="ui" style="left:742px;top:138px"><span class="halo" style="font-size:17px">Derek · Batch B-1147</span></div>
-
-  <div class="btn dark" data-sk="dark" style="left:270px;top:190px;width:196px;height:38px">Escalations (2)</div>
-  <div id="d-alltab" class="btn" data-sk="rbox" style="left:478px;top:190px;width:196px;height:38px">All analyses (6)</div>
-
-  <!-- area A -->
-  <div id="z-a" data-sk="rbox" data-sw="3.4" style="left:266px;top:242px;width:358px;height:236px"></div>
-  <div class="hand b" style="left:282px;top:248px;font-size:22px">Awaiting your decision (2)</div>
-  <div class="ui" data-sk="dark" style="left:282px;top:284px;width:326px;height:86px;padding:6px 12px;color:#fff;font-size:17px;line-height:1.3">
-    <div class="row"><span class="b" style="font-size:22px">#203</span><span>Awaiting engineer · 12 min</span></div>
-    <div>System: Mass loading above limit.</div>
-    <div>Maya: Does not match what I observe</div>
-  </div>
-  <div class="ui" data-sk="rbox" style="left:282px;top:380px;width:326px;height:86px;padding:6px 12px;font-size:17px;line-height:1.3">
-    <div class="row"><span class="b" style="font-size:22px">#205</span><span>Awaiting engineer · 4 min</span></div>
-    <div>System: Sheet resistance above limit.</div>
-    <div>Maya: Unexpected for this batch</div>
-  </div>
-
-  <!-- area B -->
-  <div id="z-b" data-sk="dash" style="left:266px;top:494px;width:358px;height:92px"></div>
-  <div class="hand b" style="left:282px;top:500px;font-size:20px">▸ Decisions made (1)</div>
-  <div class="ui muted" style="left:282px;top:534px;width:326px;font-size:17px;line-height:1.3">
-    <div class="row"><span class="b">#201</span><span>Accepted · Derek</span></div>
-    <div class="hand" style="font-weight:300;font-size:15px">reason recorded · read-only</div>
-  </div>
-
-  <!-- area C -->
-  <div id="z-c" data-sk="rbox" data-sw="2" style="left:644px;top:242px;width:280px;height:344px"></div>
-  <div data-sk="hatch" style="left:644px;top:242px;width:280px;height:42px"></div>
-  <div style="left:656px;top:248px"><span class="halo hand b" style="font-size:20px">All analyses (6)</span></div>
-  <div class="ui" style="left:658px;top:294px;width:252px;font-size:17.5px">
-    <div class="row" style="height:40px"><span class="b">#201</span><span>Accepted · Derek</span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:40px;padding-top:6px"><span class="b">#202</span><span>Accepted · Maya</span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:40px;padding-top:6px"><span class="b">#203</span><span>Awaiting engineer</span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:40px;padding-top:6px"><span class="b">#204</span><span>Sent for rework · Maya</span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:40px;padding-top:6px"><span class="b">#205</span><span>Awaiting engineer</span></div>
-    <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:40px;padding-top:6px"><span class="b">#206</span><span>Awaiting decision · Maya</span></div>
-  </div>
-  <i data-arrow="d-alltab:r:0.5 z-c:t:0.35" data-bend="-18"></i>
-
-  <!-- annotations -->
-  <div id="a3-1" class="ann" style="left:24px;top:250px;width:212px">
-    <h3><span class="num" data-sk="circle">1</span>Needs my decision</h3>
-    First and most prominent. Each card shows the system's finding and Maya's reason.
-  </div>
-  <div id="a3-2" class="ann" style="left:24px;top:494px;width:212px">
-    <h3><span class="num" data-sk="circle">2</span>Already resolved</h3>
-    Collapsed and read-only, but still traceable.
-  </div>
-  <div id="a3-3" class="ann" style="left:962px;top:330px;width:206px">
-    <h3><span class="num" data-sk="circle">3</span>Complete record</h3>
-    Every analysis, including Maya's routine decisions.
-  </div>
-  <i data-arrow="a3-1:r:0.15 z-a:l:0.2" data-bend="-10"></i>
-  <i data-arrow="a3-2:r:0.2 z-b:l:0.3" data-bend="-8"></i>
-  <i data-arrow="a3-3:l:0.2 z-c:r:0.3" data-bend="10"></i>
 
   <div class="bottom" style="top:614px">
-    <b>Derek sees at once what needs his attention,</b> while keeping access to the complete analytical record.
+    <b>Two minutes changes how much Maya reads,</b> not who decides or which rule applies.
   </div>
 </section>
 
 <!-- ============ SLIDE 4 ============ -->
 <section class="slide" id="s4">
+  <div class="section">PART 2</div>
   <h1 class="title">Derek: Enable an Informed Decision</h1>
   <p class="sub"><b>Design decision:</b> provide enough technical evidence for independent expert judgment.</p>
 
@@ -272,7 +338,7 @@
     <span><span class="hand b" style="font-size:30px">#203</span> <span class="ui" style="font-size:16px">Batch B-1147 · Cathode coating</span></span>
     <span class="ui" data-sk="rbox" style="font-size:16px;padding:2px 10px">Awaiting engineer · Derek</span>
   </div>
-  <div id="d-flag" class="ui" data-sk="rbox" style="left:250px;top:170px;width:400px;height:34px;padding:4px 12px;font-size:18px"><span class="caps">System finding:</span> Mass loading above limit.</div>
+  <div id="d-flag" class="ui" data-sk="rbox" style="left:250px;top:170px;width:560px;height:34px;padding:4px 12px;font-size:17px"><span class="caps">System finding:</span> Mass loading just above limit, too close to call.</div>
   <div id="d-maya" class="ui" data-sk="rbox" style="left:250px;top:212px;width:400px;height:34px;padding:4px 12px;font-size:18px"><span class="caps">Maya's reason:</span> Does not match what I observe</div>
 
   <div class="hand b" style="left:250px;top:254px;font-size:21px">What the measurements show</div>
@@ -288,12 +354,12 @@
     <div style="height:70px"><div class="b">Porosity</div><div style="font-size:22px">34.0 <span style="font-size:15px">%</span></div></div>
     <div style="height:70px"><div class="b">Sheet resistance</div><div style="font-size:22px">0.29 <span style="font-size:15px">mΩ·cm²</span></div></div>
   </div>
-  <div id="bar-ml" data-sk="specbar" data-vmin="14.0" data-vmax="16.2" data-min="14.5" data-max="15.5" data-lo="15.50" data-hi="15.70" data-pt="15.6" data-fmt="1" style="left:424px;top:290px;width:270px;height:52px"></div>
+  <div id="bar-ml" data-sk="specbar" data-vmin="14.0" data-vmax="16.2" data-min="14.5" data-max="15.5" data-lo="15.46" data-hi="15.70" data-pt="15.6" data-fmt="1" style="left:424px;top:290px;width:270px;height:52px"></div>
   <div id="bar-po" data-sk="specbar" data-vmin="30" data-vmax="38" data-min="32" data-max="36" data-lo="33.7" data-hi="34.2" data-pt="34.0" data-fmt="0" style="left:424px;top:360px;width:270px;height:52px"></div>
   <div id="bar-sr" data-sk="specbar" data-vmin="0.15" data-vmax="0.48" data-min="0.20" data-max="0.35" data-lo="0.275" data-hi="0.295" data-pt="0.29" data-fmt="2" style="left:424px;top:430px;width:270px;height:52px"></div>
 
   <div class="ui" style="left:712px;top:292px;width:132px;font-size:16px;line-height:1.2">
-    <div id="d-spec1" style="height:70px">spec 14.5–15.5<br>range 15.50–15.70<br><b id="d-dev" class="hand" style="font-size:16px">↑ Above limit</b></div>
+    <div id="d-spec1" style="height:70px">spec 14.5–15.5<br>range 15.46–15.70<br><b id="d-dev" class="hand" style="font-size:16px">↑ +0.10 over · Second look</b></div>
     <div id="d-spec2" style="height:70px">spec 32–36<br>range 33.7–34.2<br><span class="hand" style="font-size:16px">In spec</span></div>
     <div id="d-spec3" style="height:70px">spec 0.20–0.35<br>range 0.28–0.30<br><span class="hand" style="font-size:16px">In spec</span></div>
   </div>
@@ -329,7 +395,7 @@
   </div>
   <div id="a4-5" class="ann" style="left:930px;top:330px;width:236px">
     <h3><span class="num" data-sk="circle">5</span>Deviation &amp; proximity</h3>
-    How far the range sits from the limit, and which way.
+    Point is +0.10 over the limit; the range still straddles it — too close to call alone.
   </div>
   <div id="a4-6" class="ann" style="left:930px;top:460px;width:236px">
     <h3><span class="num" data-sk="circle">6</span>Expert decision controls</h3>
@@ -345,9 +411,178 @@
   </div>
 </section>
 
+<!-- ============ PART 3 · SOURCE 1 ============ -->
+<section class="slide" id="u1">
+  <h1 class="title">Uncertainty 1: Repeatability</h1>
+  <p class="sub"><b>Physical question:</b> if we scan the same coupon again, does the reading move?</p>
+  <div class="section">PART 3</div>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:48px;top:118px;width:672px;height:482px"></div>
+  <div data-sk="hatch" style="left:48px;top:118px;width:672px;height:52px"></div>
+  <div style="left:64px;top:124px"><span class="halo hand b" style="font-size:24px">#203 · Mass loading · repeat passes</span></div>
+
+  <div id="u1-chart" data-sk="ticks" data-vmin="14.9" data-vmax="15.9" data-min="14.5" data-max="15.5"
+       data-ticks="15.46,15.52,15.55,15.58,15.6,15.62,15.65,15.7" data-pt="15.6"
+       style="left:84px;top:220px;width:600px;height:280px"></div>
+
+  <div class="ui" style="left:84px;top:520px;width:600px;font-size:17px;line-height:1.45">
+    <div><b style="font-family:'Segoe UI';font-size:15px">|</b> = one plasma pass, fixed setup &nbsp;·&nbsp; <span class="ic" data-sk="legend-pt"></span> reported value</div>
+    <div><b>7 of 8 passes above 15.5; 1 in spec.</b> Spread 15.46–15.70 (0.24 mg/cm²).</div>
+    <div class="hand" style="font-weight:300;font-size:15px">mg/cm² · illustrative repeat-pass data · min–max, not a ± interval</div>
+  </div>
+
+  <div class="ann u" style="left:752px;top:118px;width:408px">
+    <h3>What's physically happening</h3>
+    Plasma stability and sensor noise shift each pass slightly under a fixed setup.
+  </div>
+  <div class="ann u" style="left:752px;top:236px;width:408px">
+    <h3>What Derek can conclude</h3>
+    Most passes read high, but one lands in spec — noise alone could explain a 0.1 excess.
+  </div>
+  <div class="ann u" style="left:752px;top:354px;width:408px">
+    <h3>What it can't tell him</h3>
+    Repeatable isn't accurate. A calibration bias would repeat on every pass.
+  </div>
+  <div class="ann u" style="left:752px;top:472px;width:408px">
+    <h3>Next step if the spread were wide</h3>
+    Check the setup and re-scan. More passes narrow random noise.
+  </div>
+
+  <div class="bottom" style="top:614px">
+    <b>Shown as the raw spread of passes against the limit,</b> not as ± or a percentage.
+  </div>
+</section>
+
+<!-- ============ PART 3 · SOURCE 2 ============ -->
+<section class="slide" id="u2">
+  <h1 class="title">Uncertainty 2: Reference Coverage</h1>
+  <p class="sub"><b>Physical question:</b> was the model calibrated on lab coupons like this one?</p>
+  <div class="section">PART 3</div>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:48px;top:118px;width:672px;height:482px"></div>
+  <div data-sk="hatch" style="left:48px;top:118px;width:672px;height:52px"></div>
+  <div style="left:64px;top:124px"><span class="halo hand b" style="font-size:24px">#203 · Mass loading · lab reference support</span></div>
+
+  <div id="u2-sc" data-sk="scatter" data-vmin="14.4" data-vmax="15.9" data-min="14.5" data-max="15.5" data-pt="15.6"
+       data-points="14.6,14.55 14.7,14.72 14.8,14.78 14.9,14.95 15.0,14.98 15.1,15.12 15.2,15.18 15.3,15.28 15.35,15.4 15.4,15.38 15.45,15.52 15.5,15.48 15.55,15.72 15.6,15.42 15.65,15.88"
+       style="left:118px;top:214px;width:270px;height:270px"></div>
+  <div class="ui" style="left:118px;top:516px;width:270px;text-align:center;font-size:15px">plasma prediction (mg/cm²)</div>
+  <div class="ui" style="left:6px;top:340px;width:120px;text-align:center;font-size:15px;transform:rotate(-90deg)">lab weigh-up (mg/cm²)</div>
+
+  <div class="hand b" style="left:436px;top:200px;font-size:19px">Lab coupons by loading</div>
+  <div class="ui" style="left:436px;top:238px;width:270px;font-size:16px">
+    <div class="bar"><span>14.5–15.0</span><i data-sk="fillbar" style="width:145px"></i><b>38</b></div>
+    <div class="bar"><span>15.0–15.4</span><i data-sk="fillbar" style="width:160px"></i><b>42</b></div>
+    <div class="bar" id="u2-thin1"><span>15.4–15.5</span><i data-sk="fillbar" style="width:34px"></i><b>9</b></div>
+    <div class="bar" id="u2-thin2"><span>&gt; 15.5</span><i data-sk="fillbar" style="width:15px"></i><b>4</b></div>
+  </div>
+  <div id="u2-note" class="hand b" style="left:500px;top:420px;width:200px;font-size:17px;line-height:1.2">only 13 coupons above 15.4</div>
+  <i data-arrow="u2-note:t:0.3 u2-thin1:b:0.55" data-bend="-10"></i>
+
+  <div class="ui" style="left:436px;top:478px;width:270px;font-size:16px;line-height:1.3">Scatter shows 15 of 93 coupons. No lab value for #203 yet — "lab pending," not invented.</div>
+
+  <div class="ann u" style="left:752px;top:118px;width:408px">
+    <h3>What's physically happening</h3>
+    The model learned from coupons weighed in the lab. Few have loadings this high, and the high-end pairs scatter more.
+  </div>
+  <div class="ann u" style="left:752px;top:236px;width:408px">
+    <h3>What Derek can conclude</h3>
+    Up here support is thin, so a consistent bias is possible — not proven.
+  </div>
+  <div class="ann u" style="left:752px;top:354px;width:408px">
+    <h3>Why it differs from repeatability</h3>
+    Routing uses the repeat-scan range only. Reference coverage is evidence for Derek; it is naturally thin near any limit.
+  </div>
+  <div class="ann u" style="left:752px;top:472px;width:408px">
+    <h3>Next step</h3>
+    Request verification: a lab weigh-up of the #203 coupon.
+  </div>
+
+  <div class="bottom" style="top:614px">
+    <b>Together:</b> #203 straddles the limit on repeats, and lab support is thin there. Verify before rework.
+  </div>
+</section>
+
+<!-- ============ APPENDIX · DEREK QUEUE ============ -->
+<section class="slide" id="s3">
+  <div class="section">APPENDIX</div>
+  <h1 class="title">Derek: Prioritize Escalations</h1>
+  <p class="sub"><b>Design decision:</b> organize the interface around <b>required action</b>, not data availability.</p>
+
+  <div data-sk="rbox" data-sw="2.4" style="left:250px;top:118px;width:690px;height:486px"></div>
+  <div data-sk="hatch" style="left:250px;top:118px;width:690px;height:58px"></div>
+  <div style="left:266px;top:126px"><span class="halo hand b" style="font-size:27px">Engineering evidence</span></div>
+  <div class="ui" style="left:742px;top:138px"><span class="halo" style="font-size:17px">Derek · Batch B-1147</span></div>
+
+  <div class="btn dark" data-sk="dark" style="left:270px;top:190px;width:196px;height:38px">Escalations (2)</div>
+  <div id="d-alltab" class="btn" data-sk="rbox" style="left:478px;top:190px;width:196px;height:38px">All analyses (6)</div>
+
+  <!-- area A -->
+  <div id="z-a" data-sk="rbox" data-sw="3.4" style="left:266px;top:242px;width:358px;height:236px"></div>
+  <div class="hand b" style="left:282px;top:248px;font-size:22px">Awaiting your decision (2)</div>
+  <div class="ui" data-sk="dark" style="left:282px;top:284px;width:326px;height:86px;padding:6px 12px;color:#fff;font-size:17px;line-height:1.3">
+    <div class="row"><span class="b" style="font-size:22px">#201</span><span>Awaiting engineer · 8 min</span></div>
+    <div>System: Porosity near limit.</div>
+    <div>Maya: Uncertain result</div>
+  </div>
+  <div class="ui" data-sk="rbox" style="left:282px;top:380px;width:326px;height:86px;padding:6px 12px;font-size:17px;line-height:1.3">
+    <div class="row"><span class="b" style="font-size:22px">#203</span><span>Awaiting engineer · 4 min</span></div>
+    <div>System: Mass loading just above limit…</div>
+    <div>Maya: Does not match what I observe</div>
+  </div>
+
+  <!-- area B -->
+  <div id="z-b" data-sk="dash" style="left:266px;top:494px;width:358px;height:92px"></div>
+  <div class="hand b" style="left:282px;top:500px;font-size:20px">▸ Decisions made (0)</div>
+  <div class="ui muted" style="left:282px;top:534px;width:326px;font-size:17px;line-height:1.3">
+    <div class="hand" style="font-weight:300;font-size:15px">No resolved escalations yet · read-only when present</div>
+  </div>
+
+  <!-- area C -->
+  <div id="z-c" data-sk="rbox" data-sw="2" style="left:644px;top:242px;width:280px;height:344px"></div>
+  <div data-sk="hatch" style="left:644px;top:242px;width:280px;height:42px"></div>
+  <div style="left:656px;top:248px"><span class="halo hand b" style="font-size:20px">All analyses (6)</span></div>
+  <div class="ui" style="left:658px;top:294px;width:252px;font-size:17.5px">
+    <div class="row" style="height:40px"><span class="b">#201</span><span>Awaiting engineer</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#202</span><span>Accepted · Maya</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#203</span><span>Awaiting engineer</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#204</span><span>Sent for rework · Maya</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#205</span><span>Sent for rework · Maya</span></div>
+    <div data-sk="hline" style="position:static;height:2px"></div>
+    <div class="row" style="height:40px;padding-top:6px"><span class="b">#206</span><span>Accepted · Maya</span></div>
+  </div>
+  <i data-arrow="d-alltab:r:0.5 z-c:t:0.35" data-bend="-18"></i>
+
+  <!-- annotations -->
+  <div id="a3-1" class="ann" style="left:24px;top:250px;width:212px">
+    <h3><span class="num" data-sk="circle">1</span>Needs my decision</h3>
+    First and most prominent. Each card shows the system's finding and Maya's reason.
+  </div>
+  <div id="a3-2" class="ann" style="left:24px;top:494px;width:212px">
+    <h3><span class="num" data-sk="circle">2</span>Already resolved</h3>
+    Collapsed and read-only, but still traceable.
+  </div>
+  <div id="a3-3" class="ann" style="left:962px;top:330px;width:206px">
+    <h3><span class="num" data-sk="circle">3</span>Complete record</h3>
+    Every analysis, including Maya's routine decisions.
+  </div>
+  <i data-arrow="a3-1:r:0.15 z-a:l:0.2" data-bend="-10"></i>
+  <i data-arrow="a3-2:r:0.2 z-b:l:0.3" data-bend="-8"></i>
+  <i data-arrow="a3-3:l:0.2 z-c:r:0.3" data-bend="10"></i>
+
+  <div class="bottom" style="top:614px">
+    <b>Derek sees at once what needs his attention,</b> while keeping access to the complete analytical record.
+  </div>
+</section>
+
 <!-- ============ SLIDE 5 ============ -->
 <section class="slide" id="s5">
-  <h1 class="title">How I Used AI</h1>
+  <div class="section">APPENDIX</div>
+  <h1 class="title">Appendix: How I Used AI</h1>
   <p class="sub">AI <b>accelerated execution</b>; product judgment remained <b>human-led</b>.</p>
 
   <div data-sk="rbox" data-sw="2.6" style="left:48px;top:120px;width:540px;height:350px"></div>
@@ -358,13 +593,13 @@
   <div class="ui" style="left:68px;top:166px;width:500px">
     <div style="height:60px"><div class="b" style="font-size:20px">Interpreting user responsibilities</div><div class="hand small">Maya decides routine cases; Derek owns escalations.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Defining decision logic</div><div class="hand small">Outside spec → rework · fully inside → accept · otherwise → engineer.</div></div>
-    <div style="height:60px"><div class="b" style="font-size:20px">Determining information hierarchy</div><div class="hand small">Dropped the 20/2-minute switch for Maya / Derek role views.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Determining information hierarchy</div><div class="hand small">Split Maya's view into 2 and 20 min; both stay simpler than Derek's.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Selecting appropriate technical detail</div><div class="hand small">Kept repeat scans and lab-coupon evidence out of Maya's view.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Reviewing and refining the experience</div><div class="hand small">e.g. locked Maya's edits once a case is with the engineer.</div></div>
   </div>
   <div class="ui" style="left:632px;top:166px;width:500px">
     <div style="height:60px"><div class="b" style="font-size:20px">Exploring alternative workflows</div><div class="hand small">Drafted escalation and verification flows for me to choose from.</div></div>
-    <div style="height:60px"><div class="b" style="font-size:20px">Challenging assumptions</div><div class="hand small">Helped build an assumption register to validate with SirenOpt.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Challenging assumptions</div><div class="hand small">Helped build an assumption register to test with technicians and engineers.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Rapid interface prototyping</div><div class="hand small">Turned my written specs into a clickable React prototype.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Code generation and iteration</div><div class="hand small">Implemented, unit-tested and deployed each revision.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Visual exploration and presentation support</div><div class="hand small">Hand-drawn interface sketches and this deck.</div></div>
@@ -392,7 +627,7 @@
   <div class="note" style="left:470px;top:604px;width:260px;font-size:16px">repeated for every revision</div>
   <div class="note" style="left:518px;top:478px;width:190px">dashed = AI-assisted</div>
 
-  <div class="hand" style="left:48px;top:640px;width:1104px;font-size:15px;font-weight:300;text-align:center">AI output is not customer validation. Uncertainty ranges are illustrative, and the assumptions still need confirmation from SirenOpt.</div>
+  <div class="hand" style="left:48px;top:640px;width:1104px;font-size:15px;font-weight:300;text-align:center">AI output is not customer validation. Uncertainty ranges are illustrative, and the assumptions still need testing with real technicians and engineers.</div>
 </section>
 
 <script>
@@ -444,7 +679,57 @@
         case 'box':
           add(rc.rectangle(x, y, w, h, o)); break
         case 'rbox':
-          add(rc.path(rr(x, y, w, h, 12), o)); break
+          add(rc.path(rr(x, y, w, h, Math.min(12, h / 3)), el.dataset.fill ? { ...o, fill: '#fff', fillStyle: 'solid' } : o)); break
+        case 'vline':
+          add(rc.line(x + w / 2, y, x + w / 2, y + h, { ...o, strokeWidth: 1.4, roughness: 0.9 })); break
+        case 'fillbar':
+          add(rc.rectangle(x, y, w, h, { ...o, strokeWidth: 1.4, fill: INK, fillStyle: 'hachure', hachureGap: 4, fillWeight: 0.9, roughness: 0.8 })); break
+        case 'ticks': {
+          const d = el.dataset
+          const vmin = +d.vmin, vmax = +d.vmax
+          const X = (v) => x + ((v - vmin) / (vmax - vmin)) * w
+          const axis = y + h - 40
+          add(rc.rectangle(x, axis - 120, X(+d.max) - x, 120, { ...o, strokeWidth: 0.1, stroke: 'transparent', fill: INK, fillStyle: 'hachure', hachureGap: 9, fillWeight: 0.5 }))
+          text(x + (X(+d.max) - x) / 2, axis - 128, 'in spec', 15)
+          add(rc.line(x, axis, x + w, axis, { ...o, strokeWidth: 2 }))
+          for (let v = Math.ceil(vmin * 5) / 5; v <= vmax + 1e-9; v += 0.2) {
+            add(rc.line(X(v), axis, X(v), axis + 8, { ...o, strokeWidth: 1.4 }))
+            text(X(v), axis + 26, v.toFixed(1), 15)
+          }
+          add(rc.line(X(+d.max), axis - 170, X(+d.max), axis + 4, { ...o, strokeWidth: 3.2 }))
+          text(X(+d.max), axis - 178, `upper limit ${(+d.max).toFixed(1)}`, 16)
+          const ticks = d.ticks.split(',').map(Number)
+          ticks.forEach((t) => add(rc.line(X(t), axis - 8, X(t), axis - 78, { ...o, strokeWidth: 2.2, roughness: 0.6 })))
+          const lo = Math.min(...ticks), hi = Math.max(...ticks)
+          const by = axis - 96
+          add(rc.line(X(lo), by, X(hi), by, { ...o, strokeWidth: 1.8 }))
+          add(rc.line(X(lo), by - 6, X(lo), by + 6, { ...o, strokeWidth: 1.8 }))
+          add(rc.line(X(hi), by - 6, X(hi), by + 6, { ...o, strokeWidth: 1.8 }))
+          text(X(hi) + 10, by + 5, `spread ${lo.toFixed(2)}–${hi.toFixed(2)}`, 16, 'start')
+          add(rc.circle(X(+d.pt), axis, 15, { ...o, fill: '#fff', fillStyle: 'solid', strokeWidth: 2.2, roughness: 0.4 }))
+          break
+        }
+        case 'scatter': {
+          const d = el.dataset
+          const vmin = +d.vmin, vmax = +d.vmax
+          const X = (v) => x + ((v - vmin) / (vmax - vmin)) * w
+          const Y = (v) => y + h - ((v - vmin) / (vmax - vmin)) * h
+          add(rc.rectangle(X(+d.min), y, X(+d.max) - X(+d.min), h, { ...o, stroke: 'transparent', strokeWidth: 0.1, fill: INK, fillStyle: 'hachure', hachureGap: 10, fillWeight: 0.4 }))
+          add(rc.rectangle(x, y, w, h, { ...o, strokeWidth: 1.8 }))
+          add(rc.line(x, y + h, x + w, y, { ...o, strokeWidth: 1.2, strokeLineDash: [6, 6], disableMultiStroke: true }))
+          d.points.split(' ').forEach((pair) => {
+            const [p, l] = pair.split(',').map(Number)
+            add(rc.circle(X(p), Y(l), 8, { ...o, fill: INK, fillStyle: 'solid', strokeWidth: 1, roughness: 0.3 }))
+          })
+          ;[14.5, 15.0, 15.5].forEach((v) => {
+            text(X(v), y + h + 18, v.toFixed(1), 14)
+            text(x - 8, Y(v) + 5, v.toFixed(1), 14, 'end')
+          })
+          const px = X(+d.pt)
+          add(rc.line(px, y - 6, px, y + h, { ...o, strokeWidth: 2.4, strokeLineDash: [8, 6], disableMultiStroke: true }))
+          text(px, y - 14, `#203 ${(+d.pt).toFixed(1)} · lab pending`, 15)
+          break
+        }
         case 'dash':
           add(rc.path(rr(x, y, w, h, 12), { ...o, strokeLineDash: [9, 7], disableMultiStroke: true })); break
         case 'hatch':

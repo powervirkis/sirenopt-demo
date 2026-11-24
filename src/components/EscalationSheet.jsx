@@ -17,9 +17,7 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
     initialFocusRef: firstRef,
     restoreFocusRef,
   })
-  const [reasonId, setReasonId] = useState(
-    sample.suggestion.kind === 'engineer' ? 'uncertain' : '',
-  )
+  const [reasonId, setReasonId] = useState('')
   const [note, setNote] = useState('')
   const reasonMeta = ESCALATION_REASONS.find((r) => r.id === reasonId)
   const needsNote = Boolean(reasonMeta?.requiresNote)

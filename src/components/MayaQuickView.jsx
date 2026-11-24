@@ -50,17 +50,23 @@ function partitionForQuick(samples, cases) {
   return { ready, needs, withDerek, completed }
 }
 
-function CountLine({ ready, needs }) {
+function CountLine({ ready, needs, withDerek, completed }) {
   const rework = needs.filter((item) => item.sample.suggestion.kind === 'rework').length
   const secondLook = needs.filter((item) => item.sample.suggestion.kind === 'engineer').length
   const toDecide = ready.length + needs.length
+  const parts = []
+  if (ready.length) parts.push(`${ready.length} pass`)
+  if (rework) parts.push(`${rework} fail`)
+  if (secondLook) parts.push(`${secondLook} second look`)
+  if (withDerek.length) parts.push(`${withDerek.length} with Derek`)
+  if (completed.length) parts.push(`${completed.length} decided`)
   return (
-    <p className="text-base font-medium text-ink" data-testid="quick-count">
+    <p
+      className="rounded-xl border border-line bg-panel px-4 py-3 text-base font-medium text-ink"
+      data-testid="quick-count"
+    >
       <span className="font-bold">{toDecide} to decide</span>
-      <span className="text-muted">
-        {' '}
-        · {ready.length} suggested pass · {rework} suggested rework · {secondLook} second look
-      </span>
+      {parts.length > 0 ? <span className="text-muted"> · {parts.join(' · ')}</span> : null}
     </p>
   )
 }
@@ -161,7 +167,12 @@ export default function MayaQuickView({
 
   return (
     <div className="space-y-4" data-testid="maya-quick-view">
-      <CountLine ready={ready} needs={needs} />
+      <CountLine
+        ready={ready}
+        needs={needs}
+        withDerek={withDerek}
+        completed={completed}
+      />
 
       <section aria-labelledby="ready-heading" data-testid="ready-section">
         <div className="flex flex-wrap items-center justify-between gap-3">

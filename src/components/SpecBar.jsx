@@ -91,7 +91,7 @@ export default function SpecBar({
                 {explanation?.reason ? ` — ${explanation.reason}` : null}
               </>
             ) : (
-              <>Lab reference pending · <span className="font-semibold">Boundary</span></>
+              <>Lab reference pending · <span className="font-semibold">Second look</span></>
             )}
           </p>
         </>
@@ -113,7 +113,7 @@ export function ChartLegend() {
       </li>
       <li className="inline-flex items-center gap-1.5">
         <span className="inline-block h-3 w-5 rounded-sm border border-look bg-look-band/80" />
-        Uncertainty range
+        Repeat-scan range
       </li>
     </ul>
   )
