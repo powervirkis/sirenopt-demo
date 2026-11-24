@@ -5,6 +5,7 @@ import {
   SAMPLES,
   setDecision,
   summarizeDecisions,
+  recordEscalation,
   DECISION,
 } from './data'
 
@@ -20,10 +21,18 @@ function loadDisplay() {
   }
 }
 
+function formatProgress(sum) {
+  if (sum.complete) {
+    return `Batch review complete · ${sum.accepted} accepted · ${sum.rework} sent for rework`
+  }
+  return `${sum.unresolved} unresolved · ${sum.awaiting} awaiting decision · ${sum.engineer} awaiting engineer · ${sum.accepted} accepted · ${sum.rework} rework`
+}
+
 export default function App() {
   const [role, setRole] = useState('maya')
   const [derekSampleId, setDerekSampleId] = useState(SAMPLES[0].id)
   const [decisions, setDecisions] = useState({})
+  const [escalations, setEscalations] = useState({})
   const [statusMessage, setStatusMessage] = useState('')
   const [display, setDisplay] = useState(loadDisplay)
 
@@ -40,14 +49,8 @@ export default function App() {
   const handleAccept = (id) => {
     setDecisions((prev) => {
       const next = setDecision(prev, id, DECISION.accepted)
-      const sum = summarizeDecisions(SAMPLES, next)
-      if (sum.complete) {
-        announce(`Sample #${id} accepted. Batch review complete · 0 awaiting decision.`)
-      } else {
-        announce(
-          `Sample #${id} accepted. ${sum.awaiting} awaiting decision · ${sum.accepted} accepted · ${sum.rework} sent for rework.`,
-        )
-      }
+      if (next === prev) return prev
+      announce(`Sample #${id} accepted. ${formatProgress(summarizeDecisions(SAMPLES, next))}`)
       return next
     })
   }
@@ -55,16 +58,30 @@ export default function App() {
   const handleRework = (id) => {
     setDecisions((prev) => {
       const next = setDecision(prev, id, DECISION.rework)
-      const sum = summarizeDecisions(SAMPLES, next)
-      if (sum.complete) {
-        announce(`Sample #${id} sent for rework. Batch review complete · 0 awaiting decision.`)
-      } else {
-        announce(
-          `Sample #${id} sent for rework. ${sum.awaiting} awaiting decision · ${sum.accepted} accepted · ${sum.rework} sent for rework.`,
-        )
-      }
+      if (next === prev) return prev
+      announce(
+        `Sample #${id} sent for rework. ${formatProgress(summarizeDecisions(SAMPLES, next))}`,
+      )
       return next
     })
+  }
+
+  const handleEngineer = (id) => {
+    const sample = SAMPLES.find((s) => s.id === id)
+    if (!sample) return
+
+    setEscalations((prev) => recordEscalation(prev, sample))
+
+    setDecisions((prev) => {
+      const next = setDecision(prev, id, DECISION.engineer)
+      if (next === prev) return prev
+      announce(
+        `Sample #${id} sent to engineer. ${formatProgress(summarizeDecisions(SAMPLES, next))}`,
+      )
+      return next
+    })
+
+    setDerekSampleId(id)
   }
 
   return (
@@ -84,7 +101,7 @@ export default function App() {
               role="radio"
               aria-checked={role === 'maya'}
               onClick={() => setRole('maya')}
-              className={`min-h-11 rounded-lg px-4 text-base font-semibold ${
+              className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
                 role === 'maya' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
               }`}
             >
@@ -95,7 +112,7 @@ export default function App() {
               role="radio"
               aria-checked={role === 'derek'}
               onClick={() => setRole('derek')}
-              className={`min-h-11 rounded-lg px-4 text-base font-semibold ${
+              className={`min-h-12 rounded-lg px-4 text-base font-semibold ${
                 role === 'derek' ? 'bg-ink text-white' : 'text-muted hover:bg-panel'
               }`}
             >
@@ -114,6 +131,7 @@ export default function App() {
           decisions={decisions}
           onAccept={handleAccept}
           onRework={handleRework}
+          onEngineer={handleEngineer}
           statusMessage={statusMessage}
           largeText={display.largeText}
           highContrast={display.highContrast}
@@ -128,6 +146,7 @@ export default function App() {
           selectedId={derekSampleId}
           onSelect={setDerekSampleId}
           decisions={decisions}
+          escalations={escalations}
           largeText={display.largeText}
           highContrast={display.highContrast}
           onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}

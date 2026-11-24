@@ -74,6 +74,25 @@ html.large-text .chart-label {
   font-size: 1rem;
 }
 
+/* Stack Maya actions when text is enlarged or the viewport is very narrow. */
+html.large-text .decision-actions {
+  grid-template-columns: 1fr;
+}
+
+html.large-text .decision-actions > button {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 340px) {
+  .decision-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .decision-actions > button {
+    grid-column: 1 / -1;
+  }
+}
+
 @keyframes slide-in {
   from {
     transform: translateX(100%);

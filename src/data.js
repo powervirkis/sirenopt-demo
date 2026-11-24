@@ -3,12 +3,18 @@
  * Point estimates and specs come from the exercise.
  * Repeat-tick intervals in REPEAT_TICKS are illustrative demo inputs.
  *
- * Measurement suggestion (never auto-records a decision):
- * - accept: all ranges entirely within inclusive spec
- * - caution: a range overlaps a limit (or evidence missing)
- * - rework: a valid range is entirely outside (beats caution)
+ * Property interval (inclusive specs, unrounded values):
+ * - entirely outside: range.max < spec.min || range.min > spec.max
+ * - entirely inside:  range.min >= spec.min && range.max <= spec.max
  *
- * Maya decision: awaiting | accepted | rework
+ * Sample suggestion (never auto-records a decision):
+ * 1. any trustworthy interval entirely outside → rework
+ * 2. else all three valid intervals entirely inside → accept
+ * 3. else → engineer
+ * Missing/invalid evidence blocks Accept; an outside interval still wins rework.
+ *
+ * Maya decision: awaiting | accepted | rework | engineer
+ * Batch complete only when every sample is accepted or rework.
  */
 
 export const BATCH = {
@@ -32,6 +38,7 @@ export const PROPERTIES = {
     rangeDecimals: 2,
     viewMin: 14.0,
     viewMax: 16.2,
+    showUnitOnMaya: false,
   },
   porosity: {
     key: 'porosity',
@@ -44,6 +51,7 @@ export const PROPERTIES = {
     rangeDecimals: 1,
     viewMin: 30,
     viewMax: 38,
+    showUnitOnMaya: true,
   },
   sheetResistance: {
     key: 'sheetResistance',
@@ -56,6 +64,7 @@ export const PROPERTIES = {
     rangeDecimals: 2,
     viewMin: 0.15,
     viewMax: 0.48,
+    showUnitOnMaya: false,
   },
 }
 
@@ -84,7 +93,7 @@ export const REPEAT_TICKS = {
     sheetResistance: [0.225, 0.23, 0.235, 0.24, 0.245, 0.238, 0.242, 0.232],
   },
   205: {
-    // Low tick 14.48 crosses 14.5 — expose with rangeDecimals so Maya/Derek see 14.48–14.65
+    // Low tick 14.48 crosses 14.5 — expose with rangeDecimals so Derek sees 14.48–14.65
     massLoading: [14.5, 14.52, 14.55, 14.58, 14.6, 14.62, 14.65, 14.48],
     porosity: [32.2, 32.3, 32.4, 32.5, 32.6, 32.7, 32.45, 32.55],
     sheetResistance: [0.385, 0.39, 0.4, 0.41, 0.415, 0.42, 0.405, 0.395],
@@ -178,24 +187,53 @@ export const LAB_COUPONS = {
   },
 }
 
-const RANK = { clear: 0, caution: 1, fail: 2 }
-
 export const DECISION = {
   awaiting: 'awaiting',
   accepted: 'accepted',
   rework: 'rework',
+  engineer: 'engineer',
 }
 
 export const DECISION_META = {
   awaiting: { label: 'Awaiting decision', short: 'Awaiting' },
   accepted: { label: 'Accepted', short: 'Accepted' },
   rework: { label: 'Sent for rework', short: 'Rework' },
+  engineer: { label: 'Awaiting engineer', short: 'Engineer' },
 }
 
 export const SUGGESTION_META = {
-  accept: { symbol: '✓', label: 'Accept suggested', className: 'text-pass' },
-  caution: { symbol: '!', label: 'Boundary uncertain', className: 'text-look' },
-  rework: { symbol: '↻', label: 'Rework suggested', className: 'text-hold' },
+  accept: {
+    symbol: '✓',
+    label: 'Accept suggested',
+    action: 'accept',
+    className: 'text-pass',
+  },
+  rework: {
+    symbol: '↻',
+    label: 'Send for rework suggested',
+    action: 'rework',
+    className: 'text-hold',
+  },
+  engineer: {
+    symbol: '!',
+    label: 'Send to engineer suggested',
+    action: 'engineer',
+    className: 'text-look',
+  },
+}
+
+/** Visual status icons for Maya (shape + text; not interactive). */
+export const VISUAL_META = {
+  ok: { symbol: '✓', label: '', className: 'text-pass', meaning: 'within limits' },
+  near: { symbol: '!', label: 'Near limit', className: 'text-look', meaning: 'near limit' },
+  high: { symbol: '×', label: 'High', className: 'text-hold', meaning: 'high' },
+  low: { symbol: '×', label: 'Low', className: 'text-hold', meaning: 'low' },
+  unavailable: {
+    symbol: '—',
+    label: 'Unavailable',
+    className: 'text-muted',
+    meaning: 'unavailable',
+  },
 }
 
 export function formatValue(propertyKey, value, { range = false } = {}) {
@@ -211,6 +249,7 @@ export function bandFor(propertyKey, value, ticks) {
   return null
 }
 
+/** Interval-only classification for suggestions and Derek evidence. */
 export function classifyProperty(propertyKey, value, ticks) {
   const p = PROPERTIES[propertyKey]
   const band = bandFor(propertyKey, value, ticks)
@@ -221,6 +260,28 @@ export function classifyProperty(propertyKey, value, ticks) {
   return 'clear'
 }
 
+/**
+ * Maya row icon status from point estimate + interval.
+ * Red High/Low follows the point estimate; amber Near limit is in-spec point
+ * with interval past a boundary; green only when point and full interval are in.
+ */
+export function classifyVisual(propertyKey, value, ticks) {
+  const p = PROPERTIES[propertyKey]
+  const band = bandFor(propertyKey, value, ticks)
+  if (!band || value == null || Number.isNaN(Number(value))) {
+    return 'unavailable'
+  }
+
+  const pointOutHigh = value > p.max
+  const pointOutLow = value < p.min
+  if (pointOutHigh) return 'high'
+  if (pointOutLow) return 'low'
+
+  const intervalOverlaps = band.low < p.min || band.high > p.max
+  if (intervalOverlaps) return 'near'
+  return 'ok'
+}
+
 export function propertyExplanation(propertyKey, status, value, band) {
   const p = PROPERTIES[propertyKey]
   const point = formatValue(propertyKey, value)
@@ -229,8 +290,8 @@ export function propertyExplanation(propertyKey, status, value, band) {
   if (!band) {
     return {
       status: 'caution',
-      reason: `${p.short} evidence missing.`,
-      shortReason: `${p.short} evidence missing.`,
+      reason: `${p.label} evidence missing.`,
+      shortReason: `${p.label} unavailable.`,
       text: `Point ${point} ${p.unit}; range unavailable; spec ${spec}. Lab reference pending.`,
     }
   }
@@ -244,14 +305,14 @@ export function propertyExplanation(propertyKey, status, value, band) {
       const limit = formatValue(propertyKey, p.max)
       const short =
         propertyKey === 'sheetResistance'
-          ? `Resistance exceeds ${limit} ${p.unit}.`
+          ? `Sheet resistance exceeds ${limit} ${p.unit}.`
           : propertyKey === 'porosity'
             ? `Porosity exceeds ${limit}%.`
             : `Mass loading exceeds ${limit} ${p.unit}.`
       return {
         status: 'fail',
         reason: short,
-        shortReason: short,
+        shortReason: `${p.label} high.`,
         text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Entire range above upper limit.`,
       }
     }
@@ -259,11 +320,11 @@ export function propertyExplanation(propertyKey, status, value, band) {
     const short =
       propertyKey === 'porosity'
         ? `Porosity below ${limit}%.`
-        : `Mass-loading range below ${limit} ${p.unit}.`
+        : `Mass loading range below ${limit} ${p.unit}.`
     return {
       status: 'fail',
       reason: short,
-      shortReason: short,
+      shortReason: `${p.label} low.`,
       text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Entire range below lower limit.`,
     }
   }
@@ -275,12 +336,12 @@ export function propertyExplanation(propertyKey, status, value, band) {
         propertyKey === 'porosity'
           ? `Porosity range crosses ${limit}%.`
           : propertyKey === 'massLoading'
-            ? `Mass-loading range crosses ${limit} ${p.unit}.`
-            : `Sheet R range crosses ${limit} ${p.unit}.`
+            ? `Mass loading range crosses ${limit} ${p.unit}.`
+            : `Sheet resistance range crosses ${limit} ${p.unit}.`
       return {
         status: 'caution',
         reason: short,
-        shortReason: short,
+        shortReason: `${p.label} near limit.`,
         text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Range overlaps upper limit.`,
       }
     }
@@ -288,12 +349,12 @@ export function propertyExplanation(propertyKey, status, value, band) {
       const limit = formatValue(propertyKey, p.min)
       const short =
         propertyKey === 'massLoading'
-          ? `Mass-loading range crosses ${limit} ${p.unit}.`
-          : `${p.short} range crosses ${limit} ${p.unit}.`
+          ? `Mass loading range crosses ${limit} ${p.unit}.`
+          : `${p.label} range crosses ${limit} ${p.unit}.`
       return {
         status: 'caution',
         reason: short,
-        shortReason: short,
+        shortReason: `${p.label} near limit.`,
         text: `Point ${point} ${p.unit}; range ${rangeText}; spec ${spec}. Range overlaps lower limit.`,
       }
     }
@@ -307,31 +368,57 @@ export function propertyExplanation(propertyKey, status, value, band) {
   }
 }
 
-function buildSuggestion(propertyStatus, explanations) {
+function pickPriorityKey(statuses, target, preferOrder = PROPERTY_ORDER) {
+  for (const key of preferOrder) {
+    if (statuses[key] === target) return key
+  }
+  return PROPERTY_ORDER.find((k) => statuses[k] === target) || null
+}
+
+function buildSuggestion(propertyStatus, explanations, visualStatus) {
   const statuses = PROPERTY_ORDER.map((key) => propertyStatus[key])
+
   if (statuses.includes('fail')) {
-    const key =
-      PROPERTY_ORDER.find((k) => propertyStatus[k] === 'fail' && k === 'sheetResistance') ||
-      PROPERTY_ORDER.find((k) => propertyStatus[k] === 'fail' && k === 'porosity') ||
-      PROPERTY_ORDER.find((k) => propertyStatus[k] === 'fail')
+    const key = pickPriorityKey(propertyStatus, 'fail', [
+      'sheetResistance',
+      'porosity',
+      'massLoading',
+    ])
     return {
       kind: 'rework',
       propertyKey: key,
       reason: explanations[key].shortReason,
     }
   }
-  if (statuses.includes('caution')) {
-    const key =
-      PROPERTY_ORDER.find((k) => propertyStatus[k] === 'caution' && k === 'porosity') ||
-      PROPERTY_ORDER.find((k) => propertyStatus[k] === 'caution' && k === 'massLoading') ||
-      PROPERTY_ORDER.find((k) => propertyStatus[k] === 'caution')
-    return {
-      kind: 'caution',
-      propertyKey: key,
-      reason: explanations[key].shortReason,
-    }
+
+  if (statuses.every((s) => s === 'clear')) {
+    return { kind: 'accept', propertyKey: null, reason: '' }
   }
-  return { kind: 'accept', propertyKey: null, reason: '' }
+
+  // Missing evidence or boundary overlap → engineer. Prefer a near-limit cue.
+  const nearKey = PROPERTY_ORDER.find((k) => visualStatus[k] === 'near')
+  const highKey = PROPERTY_ORDER.find((k) => visualStatus[k] === 'high')
+  const lowKey = PROPERTY_ORDER.find((k) => visualStatus[k] === 'low')
+  const unavailableKey = PROPERTY_ORDER.find((k) => visualStatus[k] === 'unavailable')
+  const key =
+    nearKey ||
+    highKey ||
+    lowKey ||
+    unavailableKey ||
+    pickPriorityKey(propertyStatus, 'caution', ['porosity', 'massLoading', 'sheetResistance'])
+
+  const visual = visualStatus[key]
+  let reason = explanations[key]?.shortReason || ''
+  if (visual === 'near') reason = `${PROPERTIES[key].label} near limit.`
+  else if (visual === 'high') reason = `${PROPERTIES[key].label} high.`
+  else if (visual === 'low') reason = `${PROPERTIES[key].label} low.`
+  else if (visual === 'unavailable') reason = `${PROPERTIES[key].label} unavailable.`
+
+  return {
+    kind: 'engineer',
+    propertyKey: key,
+    reason,
+  }
 }
 
 const RAW_SAMPLES = [
@@ -346,6 +433,7 @@ const RAW_SAMPLES = [
 export function enrichSample(raw, ticksById = REPEAT_TICKS) {
   const ticks = ticksById[raw.id] || {}
   const propertyStatus = {}
+  const visualStatus = {}
   const bands = {}
   const explanations = {}
 
@@ -353,6 +441,7 @@ export function enrichSample(raw, ticksById = REPEAT_TICKS) {
     const t = ticks[key]
     bands[key] = bandFor(key, raw.values[key], t)
     propertyStatus[key] = classifyProperty(key, raw.values[key], t)
+    visualStatus[key] = classifyVisual(key, raw.values[key], t)
     explanations[key] = propertyExplanation(
       key,
       propertyStatus[key],
@@ -361,7 +450,7 @@ export function enrichSample(raw, ticksById = REPEAT_TICKS) {
     )
   })
 
-  const suggestion = buildSuggestion(propertyStatus, explanations)
+  const suggestion = buildSuggestion(propertyStatus, explanations, visualStatus)
   const secondary = PROPERTY_ORDER.filter(
     (k) => k !== suggestion.propertyKey && propertyStatus[k] !== 'clear',
   ).map((k) => explanations[k])
@@ -371,6 +460,7 @@ export function enrichSample(raw, ticksById = REPEAT_TICKS) {
     repeatTicks: ticks,
     bands,
     propertyStatus,
+    visualStatus,
     explanations,
     suggestion,
     secondary,
@@ -383,50 +473,106 @@ export function getDecision(decisions, id) {
   return decisions[id] || DECISION.awaiting
 }
 
-/** Decision counts only — not suggestions. */
+/** Decision counts only — not suggestions. Awaiting engineer is unresolved. */
 export function summarizeDecisions(samples, decisions = {}) {
   let awaiting = 0
   let accepted = 0
   let rework = 0
+  let engineer = 0
   samples.forEach((s) => {
     const d = getDecision(decisions, s.id)
     if (d === DECISION.accepted) accepted += 1
     else if (d === DECISION.rework) rework += 1
+    else if (d === DECISION.engineer) engineer += 1
     else awaiting += 1
   })
+  const unresolved = awaiting + engineer
   return {
     awaiting,
     accepted,
     rework,
-    complete: awaiting === 0,
+    engineer,
+    unresolved,
+    complete: unresolved === 0,
   }
 }
 
-/** Set or correct a decision. Accept and rework are mutually exclusive. Idempotent. */
+const FINAL_OR_ESCALATE = new Set([
+  DECISION.accepted,
+  DECISION.rework,
+  DECISION.engineer,
+])
+
+/** Set or correct a decision. Idempotent. Engineer is not a final disposition. */
 export function setDecision(decisions, id, next) {
-  if (next !== DECISION.accepted && next !== DECISION.rework) return decisions
+  if (!FINAL_OR_ESCALATE.has(next)) return decisions
   if (getDecision(decisions, id) === next) return decisions
   return { ...decisions, [id]: next }
 }
 
-export function RESULT_META_FOR_ENGINEER(status) {
-  if (status === 'fail') {
-    return { word: 'Outside spec', chip: 'bg-hold-bg text-hold border-hold/40', bar: 'bg-hold', band: 'bg-hold-band/80', icon: '■' }
+/**
+ * One in-app escalation record per sample. Repeated Send to engineer does not
+ * create duplicates. Carries sample ID, measurements, bands, and reason.
+ */
+export function recordEscalation(escalations, sample) {
+  if (escalations[sample.id]) return escalations
+  const bands = {}
+  PROPERTY_ORDER.forEach((key) => {
+    const b = sample.bands[key]
+    bands[key] = b ? { low: b.low, high: b.high } : null
+  })
+  return {
+    ...escalations,
+    [sample.id]: {
+      sampleId: sample.id,
+      values: { ...sample.values },
+      bands,
+      reason: sample.suggestion.reason || SUGGESTION_META.engineer.label,
+      suggestionKind: sample.suggestion.kind,
+    },
   }
-  if (status === 'caution' || status === 'review' || status === 'look') {
-    return { word: 'Boundary', chip: 'bg-look-bg text-look border-look/40', bar: 'bg-look', band: 'bg-look-band/80', icon: '▲' }
-  }
-  return { word: 'In spec', chip: 'bg-pass-bg text-pass border-pass/40', bar: 'bg-pass', band: 'bg-pass-band/80', icon: '●' }
 }
 
-/** Presenter notes — not shown in operational UI. */
+export function RESULT_META_FOR_ENGINEER(status) {
+  if (status === 'fail') {
+    return {
+      word: 'Outside spec',
+      chip: 'bg-hold-bg text-hold border-hold/40',
+      bar: 'bg-hold',
+      band: 'bg-hold-band/80',
+      icon: '■',
+    }
+  }
+  if (status === 'caution' || status === 'review' || status === 'look') {
+    return {
+      word: 'Boundary',
+      chip: 'bg-look-bg text-look border-look/40',
+      bar: 'bg-look',
+      band: 'bg-look-band/80',
+      icon: '▲',
+    }
+  }
+  return {
+    word: 'In spec',
+    chip: 'bg-pass-bg text-pass border-pass/40',
+    bar: 'bg-pass',
+    band: 'bg-pass-band/80',
+    icon: '●',
+  }
+}
+
+/** Presenter notes — not shown in Maya’s operational UI. */
 export const PRESENTER_NOTES = {
   illustrativeData:
     'Point estimates and specification limits come from the exercise. Uncertainty ranges (REPEAT_TICKS) and lab-coupon scatters are illustrative demo inputs, not production measurements.',
   intervalRule:
-    'Inclusive specs: entirely inside → Accept suggested; overlaps a limit → Boundary uncertain; entirely outside → Rework suggested. A clear outside-spec property beats a boundary caution. Suggestions never auto-record Maya’s decision.',
+    'Proposed prototype rules (validate with quality): inclusive specs. Entirely outside interval → Send for rework suggested; all three entirely inside → Accept suggested; otherwise (boundary overlap or missing evidence) → Send to engineer suggested. An outside interval beats engineer. Missing evidence blocks Accept. Point-estimate icons (High/Low/Near limit/✓) are separate from the sample suggestion. Suggestions never auto-record Maya’s decision.',
+  boundaryCases:
+    '#203 mass 15.50–15.70 includes the upper boundary and extends above it → red High on the point, Send to engineer suggested. #205 mass 14.48–14.65 crosses 14.5 (two decimals in Derek). A valid interval that only touches a boundary from inside remains eligible for Accept.',
+  escalation:
+    'Send to engineer sets Awaiting engineer (unresolved). One in-app escalation record per sample; no email/Slack. Engineer review does not auto accept/rework. Batch completes only when every sample is Accepted or Sent for rework.',
   timeComparison:
-    'For the take-home presentation, contrast a fuller Maya layout (inline values + reasons) with a compact layout (reasons + Accept / Send for rework). Both use the same data, suggestions, two actions, and decision states. Do not put a 20/2-minute switch in the operational app.',
+    'For the take-home presentation, contrast layout density offline. Do not put a 20/2-minute switch in the operational app.',
   assumptions:
-    'Every sample needs an explicit Accept or Send for rework before the line moves on. Session decisions clear on reload. #205 mass range 14.48–14.65 mg/cm² crosses 14.5 (shown with two decimals).',
+    'Every sample needs an explicit Accept or Send for rework before the line moves on. Session decisions clear on reload. Four state counts always total six.',
 }

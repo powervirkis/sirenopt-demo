@@ -1,5 +1,6 @@
 import {
   BATCH,
+  DECISION,
   DECISION_META,
   LAB_COUPONS,
   PROPERTIES,
@@ -200,6 +201,7 @@ export default function DerekView({
   selectedId,
   onSelect,
   decisions,
+  escalations = {},
   largeText,
   highContrast,
   onToggleLargeText,
@@ -207,6 +209,8 @@ export default function DerekView({
 }) {
   const sample = samples.find((s) => s.id === selectedId) || samples[0]
   const decision = getDecision(decisions, sample.id)
+  const escalation = escalations[sample.id]
+  const pendingEngineer = decision === DECISION.engineer
   const driveKey = sample.suggestion.propertyKey || 'porosity'
   const sug = SUGGESTION_META[sample.suggestion.kind]
 
@@ -227,7 +231,7 @@ export default function DerekView({
             type="button"
             aria-pressed={largeText}
             onClick={onToggleLargeText}
-            className="min-h-11 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
+            className="min-h-12 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
           >
             Large text
           </button>
@@ -235,7 +239,7 @@ export default function DerekView({
             type="button"
             aria-pressed={highContrast}
             onClick={onToggleHighContrast}
-            className="min-h-11 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
+            className="min-h-12 rounded-lg border border-line px-3 text-sm font-medium text-ink hover:bg-surface"
           >
             High contrast
           </button>
@@ -249,6 +253,7 @@ export default function DerekView({
       >
         {samples.map((s) => {
           const selected = s.id === sample.id
+          const pending = getDecision(decisions, s.id) === DECISION.engineer
           return (
             <button
               key={s.id}
@@ -256,13 +261,21 @@ export default function DerekView({
               role="option"
               aria-selected={selected}
               onClick={() => onSelect(s.id)}
-              className={`min-h-11 rounded-lg px-3 text-sm font-semibold tabular-nums ${
+              className={`min-h-12 rounded-lg px-3 text-sm font-semibold tabular-nums ${
                 selected
                   ? 'bg-ink text-white'
-                  : 'border border-line text-ink hover:bg-surface'
+                  : pending
+                    ? 'border-2 border-look bg-look-bg text-look'
+                    : 'border border-line text-ink hover:bg-surface'
               }`}
             >
               #{s.id}
+              {pending ? <span className="sr-only">, awaiting engineer</span> : null}
+              {pending ? (
+                <span className="ml-1 text-xs font-bold" aria-hidden="true">
+                  ●
+                </span>
+              ) : null}
             </button>
           )
         })}
@@ -281,6 +294,12 @@ export default function DerekView({
                 <span className="text-muted"> — {sample.suggestion.reason}</span>
               ) : null}
             </p>
+            {pendingEngineer ? (
+              <p className="mt-2 text-sm font-semibold text-look" data-testid="escalation-banner">
+                Pending engineer review
+                {escalation?.reason ? ` — ${escalation.reason}` : ''}
+              </p>
+            ) : null}
           </div>
           <p className="rounded-lg border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink">
             Maya: {DECISION_META[decision].label}
