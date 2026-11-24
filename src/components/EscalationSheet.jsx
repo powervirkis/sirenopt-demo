@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ESCALATION_REASONS, systemFindingFor } from '../data'
+import { ESCALATION_REASONS, SUGGESTION_LABEL, systemFindingFor } from '../data'
 import { useDialog } from '../hooks/useDialog'
 
 /**
@@ -23,6 +23,7 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
   const needsNote = Boolean(reasonMeta?.requiresNote)
   const canSend = Boolean(reasonId) && (!needsNote || note.trim().length > 0)
   const systemFinding = systemFindingFor(sample)
+  const againstSuggestion = sample.suggestion?.kind && sample.suggestion.kind !== 'engineer'
 
   const confirm = () => {
     restoreFocusRef.current = false
@@ -45,8 +46,14 @@ export default function EscalationSheet({ sample, onConfirm, onCancel }) {
         className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border-2 border-line bg-panel p-4 shadow-xl sm:p-5"
       >
         <h2 id={titleId} className="text-xl font-bold text-ink">
-          Send #{sample.id} to engineer
+          {againstSuggestion ? 'Are you sure?' : `Send #${sample.id} to engineer`}
         </h2>
+        {againstSuggestion ? (
+          <p className="mt-2 text-base text-ink">
+            You chose <b>Send to engineer</b> for #{sample.id}, but the system suggested{' '}
+            <b>{SUGGESTION_LABEL[sample.suggestion.kind]}</b>.
+          </p>
+        ) : null}
         <p className="mt-2 text-sm text-muted">
           Confirm why this sample needs engineering review. Cancel leaves it unchanged.
         </p>

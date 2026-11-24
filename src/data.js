@@ -114,10 +114,10 @@ export const REPEAT_TICKS = {
 export const LAB_COUPONS = {
   massLoading: {
     bins: [
-      { range: '14.5–15.0', count: 38 },
-      { range: '15.0–15.4', count: 42 },
-      { range: '15.4–15.5', count: 9 },
-      { range: '>15.5', count: 4 },
+      { range: '14.5–15.0', lo: 14.5, hi: 15.0, count: 38 },
+      { range: '15.0–15.4', lo: 15.0, hi: 15.4, count: 42 },
+      { range: '15.4–15.5', lo: 15.4, hi: 15.5, count: 9 },
+      { range: '>15.5', lo: 15.5, hi: Infinity, count: 4 },
     ],
     sparseNote: 'Weigh-up coupons thin above 15.4 mg/cm². Lab reference pending for this sample.',
     // 15 of 93 coupons shown. High-end points are intentionally more scattered.
@@ -143,9 +143,9 @@ export const LAB_COUPONS = {
   },
   porosity: {
     bins: [
-      { range: '33–35.5%', count: 51 },
-      { range: '35.5–36%', count: 5 },
-      { range: '>36%', count: 3 },
+      { range: '33–35.5%', lo: 33, hi: 35.5, count: 51 },
+      { range: '35.5–36%', lo: 35.5, hi: 36, count: 5 },
+      { range: '>36%', lo: 36, hi: Infinity, count: 3 },
     ],
     sparseNote: 'Only 5 porosimetry coupons between 35.5–36%, 3 above 36%. Lab reference pending for this sample.',
     points: [
@@ -171,9 +171,9 @@ export const LAB_COUPONS = {
   },
   sheetResistance: {
     bins: [
-      { range: '0.20–0.30', count: 44 },
-      { range: '0.30–0.35', count: 18 },
-      { range: '>0.35', count: 6 },
+      { range: '0.20–0.30', lo: 0.2, hi: 0.3, count: 44 },
+      { range: '0.30–0.35', lo: 0.3, hi: 0.35, count: 18 },
+      { range: '>0.35', lo: 0.35, hi: Infinity, count: 6 },
     ],
     sparseNote: 'Four-point lab checks sparse above 0.35 mΩ·cm². Lab reference pending for this sample.',
     points: [
@@ -193,6 +193,16 @@ export const LAB_COUPONS = {
     ],
     labMethod: 'four-point probe',
   },
+}
+
+/** Lab coupons needed near a value before a tight repeat range can earn a Pass. */
+export const MIN_REFERENCE_COUPONS = 10
+
+/** Coupons in the illustrative lab set whose loading bin contains `value` (0 if none). */
+export function referenceSupport(propertyKey, value) {
+  const bins = LAB_COUPONS[propertyKey]?.bins || []
+  const bin = bins.find((b) => value >= b.lo && value < b.hi)
+  return bin ? bin.count : 0
 }
 
 export const ACTOR = {
@@ -436,7 +446,7 @@ function pickPriorityKey(statuses, target, preferOrder = PROPERTY_ORDER) {
   return PROPERTY_ORDER.find((k) => statuses[k] === target) || null
 }
 
-function buildSuggestion(propertyStatus, explanations, visualStatus) {
+function buildSuggestion(propertyStatus, explanations, visualStatus, values) {
   const statuses = PROPERTY_ORDER.map((key) => propertyStatus[key])
 
   if (statuses.includes('fail')) {
@@ -453,6 +463,18 @@ function buildSuggestion(propertyStatus, explanations, visualStatus) {
   }
 
   if (statuses.every((s) => s === 'clear')) {
+    // A tight in-spec range only shows the reading is repeatable; a Pass also
+    // needs lab reference coverage, because a calibration bias repeats every pass.
+    const thinKey = PROPERTY_ORDER.find(
+      (k) => referenceSupport(k, values[k]) < MIN_REFERENCE_COUPONS,
+    )
+    if (thinKey) {
+      return {
+        kind: 'engineer',
+        propertyKey: thinKey,
+        reason: `${PROPERTIES[thinKey].label} has thin lab reference support.`,
+      }
+    }
     return { kind: 'accept', propertyKey: null, reason: '' }
   }
 
@@ -515,7 +537,7 @@ export function enrichSample(raw, ticksById = REPEAT_TICKS) {
     )
   })
 
-  const suggestion = buildSuggestion(propertyStatus, explanations, visualStatus)
+  const suggestion = buildSuggestion(propertyStatus, explanations, visualStatus, raw.values)
   const secondary = PROPERTY_ORDER.filter(
     (k) => k !== suggestion.propertyKey && propertyStatus[k] !== 'clear',
   ).map((k) => explanations[k])
@@ -666,31 +688,43 @@ export function buildEscalationSnapshot(sample, { reasonId, reasonLabel, note, a
   }
 }
 
+const SUGGESTED_DISPOSITION = { accept: DECISION.accepted, rework: DECISION.rework }
+
+export const SUGGESTION_LABEL = {
+  accept: 'Accept',
+  rework: 'Send for rework',
+  engineer: 'Send to engineer',
+}
+
 /**
- * True when Accept would go against a rework suggestion — needs an override reason.
+ * True when Maya's Accept or Rework differs from the suggestion — needs an override reason.
+ * Against "Send to engineer", both Accept and Rework are overrides.
  */
-export function mayaAcceptNeedsOverride(sample) {
-  return sample?.suggestion?.kind === 'rework'
+export function mayaDecisionNeedsOverride(sample, disposition) {
+  const kind = sample?.suggestion?.kind
+  if (!kind) return false
+  return SUGGESTED_DISPOSITION[kind] !== disposition
 }
 
 /**
  * Maya Accept / Send for rework while she owns the sample.
- * Rejected if the case is already escalated or owned by Derek.
- * Pass { override: true, reason } when accepting against a rework suggestion.
+ * Rejected if the case is already escalated or owned by Derek, or if the decision
+ * goes against the suggestion without a reason.
  */
-export function mayaDecide(cases, sampleId, disposition, { at, reason, override } = {}) {
+export function mayaDecide(cases, sampleId, disposition, { at, reason } = {}) {
   if (disposition !== DECISION.accepted && disposition !== DECISION.rework) return cases
   const current = getCase(cases, sampleId)
   if (!canMayaDecide(current)) return cases
   if (current.state === disposition && current.disposition?.author === ACTOR.maya) {
     return cases
   }
+  const sample = SAMPLES.find((s) => s.id === sampleId)
+  const isOverride = mayaDecisionNeedsOverride(sample, disposition)
+  if (isOverride && !reason?.trim()) return cases
   const stamped = at || nowIso()
-  const isOverride = Boolean(override) && disposition === DECISION.accepted
   const defaultReason =
     disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.'
   const recordedReason = reason?.trim() || defaultReason
-  if (isOverride && !reason?.trim()) return cases
   const next = pushHistory(
     {
       ...current,
@@ -712,7 +746,7 @@ export function mayaDecide(cases, sampleId, disposition, { at, reason, override 
       at: stamped,
       reason: recordedReason,
       override: isOverride || undefined,
-      overriddenSuggestion: isOverride ? 'rework' : undefined,
+      overriddenSuggestion: isOverride ? sample.suggestion.kind : undefined,
     },
   )
   return writeCase(cases, sampleId, next)
@@ -1028,25 +1062,20 @@ export function historyEntries(caseRecord) {
         }
       }
       case 'maya_accept':
-      case 'derek_accept': {
-        const overrideNote = event.override
-          ? `Override of rework suggestion — ${event.reason || 'no reason'}`
-          : event.reason || null
+      case 'derek_accept':
+      case 'maya_rework':
+      case 'derek_rework': {
+        const base = event.type.endsWith('accept') ? 'Accepted' : 'Sent for rework'
+        const suggestionLabel = SUGGESTION_LABEL[event.overriddenSuggestion] || 'the'
         return {
-          title: event.override ? 'Accepted (override)' : 'Accepted',
+          title: event.override ? `${base} (override)` : base,
           actorLabel,
-          detail: overrideNote,
+          detail: event.override
+            ? `Override of ${suggestionLabel} suggestion — ${event.reason || 'no reason'}`
+            : event.reason || null,
           at,
         }
       }
-      case 'maya_rework':
-      case 'derek_rework':
-        return {
-          title: 'Sent for rework',
-          actorLabel,
-          detail: event.reason || null,
-          at,
-        }
       case 'verification_requested':
         return {
           title: 'Verification requested',

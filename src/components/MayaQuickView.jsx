@@ -236,6 +236,9 @@ export default function MayaQuickView({
           <h2 id="with-derek-heading" className="text-lg font-bold text-ink">
             With Derek ({withDerek.length})
           </h2>
+          <p className="mt-1 text-sm text-muted">
+            Still pending. The batch is complete only when Derek decides these.
+          </p>
           <ul className="mt-3 space-y-2">
             {withDerek.map(({ sample, caseRecord }) => {
               const stateMeta = DECISION_META[caseRecord.state]

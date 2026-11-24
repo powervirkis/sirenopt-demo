@@ -23,7 +23,9 @@ import {
   listEscalations,
   canMayaDecide,
   canDerekResolve,
-  mayaAcceptNeedsOverride,
+  mayaDecisionNeedsOverride,
+  referenceSupport,
+  enrichSample,
   chartFocusCopy,
   queueReasonPreview,
   historyEntries,
@@ -145,23 +147,29 @@ describe('mayaAcceptSuggested', () => {
   })
 })
 
-describe('maya override accept', () => {
-  it('flags rework suggestions as needing an override reason', () => {
-    expect(mayaAcceptNeedsOverride(SAMPLES.find((s) => s.id === 204))).toBe(true)
-    expect(mayaAcceptNeedsOverride(SAMPLES.find((s) => s.id === 202))).toBe(false)
-    expect(mayaAcceptNeedsOverride(SAMPLES.find((s) => s.id === 201))).toBe(false)
+describe('maya override policy', () => {
+  const byId = (id) => SAMPLES.find((s) => s.id === id)
+
+  it('needs a reason for any decision that differs from the suggestion', () => {
+    expect(mayaDecisionNeedsOverride(byId(204), DECISION.accepted)).toBe(true)
+    expect(mayaDecisionNeedsOverride(byId(204), DECISION.rework)).toBe(false)
+    expect(mayaDecisionNeedsOverride(byId(202), DECISION.accepted)).toBe(false)
+    expect(mayaDecisionNeedsOverride(byId(202), DECISION.rework)).toBe(true)
+    expect(mayaDecisionNeedsOverride(byId(201), DECISION.accepted)).toBe(true)
+    expect(mayaDecisionNeedsOverride(byId(201), DECISION.rework)).toBe(true)
   })
 
-  it('rejects accept-against-rework without a reason', () => {
-    const sample = SAMPLES.find((s) => s.id === 204)
-    const cases = mayaDecide({}, sample.id, DECISION.accepted, { override: true, at: FIXED_AT })
-    expect(getCase(cases, 204).state).toBe(DECISION.awaiting)
+  it('rejects an override without a reason', () => {
+    expect(getCase(mayaDecide({}, 204, DECISION.accepted, { at: FIXED_AT }), 204).state).toBe(
+      DECISION.awaiting,
+    )
+    expect(getCase(mayaDecide({}, 201, DECISION.accepted, { at: FIXED_AT }), 201).state).toBe(
+      DECISION.awaiting,
+    )
   })
 
   it('records an override accept with reason in history', () => {
-    const sample = SAMPLES.find((s) => s.id === 204)
-    const cases = mayaDecide({}, sample.id, DECISION.accepted, {
-      override: true,
+    const cases = mayaDecide({}, 204, DECISION.accepted, {
       reason: 'Coupon re-check looked fine.',
       at: FIXED_AT,
     })
@@ -169,9 +177,58 @@ describe('maya override accept', () => {
     expect(c.state).toBe(DECISION.accepted)
     expect(c.disposition.override).toBe(true)
     expect(historyEntries(c)[0].title).toBe('Accepted (override)')
-    expect(historyEntries(c)[0].detail).toMatch(/Override of rework suggestion/)
+    expect(historyEntries(c)[0].detail).toMatch(/Override of Send for rework suggestion/)
+  })
+
+  it('records an override rework of a second-look sample', () => {
+    const cases = mayaDecide({}, 201, DECISION.rework, {
+      reason: 'Visible coating defect.',
+      at: FIXED_AT,
+    })
+    const c = getCase(cases, 201)
+    expect(c.state).toBe(DECISION.rework)
+    expect(historyEntries(c)[0].title).toBe('Sent for rework (override)')
+    expect(historyEntries(c)[0].detail).toMatch(/Override of Send to engineer suggestion/)
   })
 })
+
+describe('reference support gate', () => {
+  it('counts coupons in the bin containing a value', () => {
+    expect(referenceSupport('massLoading', 14.9)).toBe(38)
+    expect(referenceSupport('massLoading', 15.45)).toBe(9)
+    expect(referenceSupport('porosity', 32.5)).toBe(0)
+  })
+
+  it('downgrades a tight in-spec range to engineer when support is thin', () => {
+    const sample = enrichSample(
+      { id: 999, values: { massLoading: 15.45, porosity: 34.0, sheetResistance: 0.25 } },
+      {
+        999: {
+          massLoading: [15.42, 15.44, 15.45, 15.46, 15.47],
+          porosity: [33.9, 34.0, 34.1],
+          sheetResistance: [0.24, 0.25, 0.26],
+        },
+      },
+    )
+    expect(sample.suggestion.kind).toBe('engineer')
+    expect(sample.suggestion.reason).toMatch(/thin lab reference support/)
+  })
+
+  it('keeps the batch suggestions unchanged', () => {
+    expect(byIdKinds()).toEqual({
+      201: 'engineer',
+      202: 'accept',
+      203: 'engineer',
+      204: 'rework',
+      205: 'rework',
+      206: 'accept',
+    })
+  })
+})
+
+function byIdKinds() {
+  return Object.fromEntries(SAMPLES.map((s) => [s.id, s.suggestion.kind]))
+}
 
 describe('shared case workflow', () => {
   it('starts with six awaiting and empty escalation queue', () => {

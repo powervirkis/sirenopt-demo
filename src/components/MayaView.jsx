@@ -16,7 +16,7 @@ import {
   getCase,
   isCompletedState,
   isPendingState,
-  mayaAcceptNeedsOverride,
+  mayaDecisionNeedsOverride,
   operatorReasonDisplay,
   summarizeCases,
 } from '../data'
@@ -551,9 +551,9 @@ export default function MayaView({
   const pending = samples.filter((s) => isPendingState(getCase(cases, s.id).state))
   const completed = samples.filter((s) => isCompletedState(getCase(cases, s.id).state))
   const [escalateSampleId, setEscalateSampleId] = useState(null)
-  const [overrideSampleId, setOverrideSampleId] = useState(null)
+  const [overrideRequest, setOverrideRequest] = useState(null)
   const escalateSample = samples.find((s) => s.id === escalateSampleId) || null
-  const overrideSample = samples.find((s) => s.id === overrideSampleId) || null
+  const overrideSample = samples.find((s) => s.id === overrideRequest?.id) || null
   const focusPlanRef = useRef(null)
   const flipRef = useRef(null)
   const isQuick = mode === '2min'
@@ -615,23 +615,29 @@ export default function MayaView({
     commit(id)
   }
 
-  const handleAccept = (id) => {
+  const decideOrAskReason = (id, disposition, commit) => {
     const sample = samples.find((s) => s.id === id)
-    if (sample && mayaAcceptNeedsOverride(sample)) {
-      setOverrideSampleId(id)
+    if (sample && mayaDecisionNeedsOverride(sample, disposition)) {
+      setOverrideRequest({ id, disposition })
       return
     }
-    beginListMove(id, 'after-complete', onAccept)
+    beginListMove(id, 'after-complete', commit)
   }
-  const handleRework = (id) => beginListMove(id, 'after-complete', onRework)
+  const handleAccept = (id) => decideOrAskReason(id, DECISION.accepted, onAccept)
+  const handleRework = (id) => decideOrAskReason(id, DECISION.rework, onRework)
   const handleReopen = (id) => beginListMove(id, 'after-reopen', onReopen)
   const handleConfirmOverride = ({ reason }) => {
     if (!overrideSample) return
     const id = overrideSample.id
-    setOverrideSampleId(null)
-    beginListMove(id, 'after-complete', (sampleId) =>
-      onAccept(sampleId, { reason, override: true }),
-    )
+    const commit = overrideRequest.disposition === DECISION.accepted ? onAccept : onRework
+    setOverrideRequest(null)
+    beginListMove(id, 'after-complete', (sampleId) => commit(sampleId, { reason }))
+  }
+  const handleOverrideEscalate = () => {
+    if (!overrideSample) return
+    const id = overrideSample.id
+    setOverrideRequest(null)
+    setEscalateSampleId(id)
   }
   const handleAcceptSuggested = () => {
     const prevRects = captureCardPositions()
@@ -790,8 +796,10 @@ export default function MayaView({
       {overrideSample ? (
         <OverrideSheet
           sample={overrideSample}
+          disposition={overrideRequest.disposition}
           onConfirm={handleConfirmOverride}
-          onCancel={() => setOverrideSampleId(null)}
+          onCancel={() => setOverrideRequest(null)}
+          onEscalate={handleOverrideEscalate}
         />
       ) : null}
     </div>

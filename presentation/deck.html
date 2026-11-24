@@ -134,8 +134,8 @@
 
   <div data-sk="dash" style="left:802px;top:420px;width:358px;height:232px;padding:14px 20px">
     <div class="hand b" style="font-size:23px;margin-bottom:6px;display:flex;align-items:center;gap:8px"><span class="num" data-sk="circle">!</span>Working assumption</div>
-    <p class="ui" style="font-size:18.5px;line-height:1.3"><b>Near limit → escalate.</b> If the value is within spec but its uncertainty range crosses a limit, Maya sends it to Derek.</p>
-    <p class="hand" style="font-size:15.5px;line-height:1.3;margin-top:8px;font-weight:300">e.g. #201 porosity 35.6%, range 35.2–36.1% vs. spec 32–36%. Still to validate with technicians and quality.</p>
+    <p class="ui" style="font-size:16.5px;line-height:1.28"><b>Near limit → escalate.</b> If the repeat-scan range crosses a limit, or lab support near the value is thin, the system suggests Send to engineer. Maya can still decide, but any call against a suggestion needs a reason.</p>
+    <p class="hand" style="font-size:14.5px;line-height:1.25;margin-top:6px;font-weight:300">e.g. #201 porosity 35.6%, range 35.2–36.1% vs. spec 32–36%. Still to validate with technicians and quality.</p>
   </div>
 </section>
 
@@ -178,11 +178,11 @@
     <div class="hand b" style="font-size:24px;margin-bottom:10px">Hidden from Maya</div>
     <div class="qi"><b>Uncertainty ranges, repeat scans, lab-reference charts.</b><span>Why: she needs a decision, not evidence to interpret. Derek sees all of it.</span></div>
     <div class="qi"><b>Any confidence %, for anyone.</b><span>Why: Maya can't act on it, and Derek doesn't trust it.</span></div>
-    <div class="qi"><b>Override of a fail suggestion needs a reason.</b><span>Why: Accept against rework is the costly mistake — keep it intentional and traceable.</span></div>
+    <div class="qi"><b>Going against a suggestion needs a reason.</b><span>Why: accepting a Fail or a Second look is the costly mistake. Every override stays intentional and traceable.</span></div>
   </div>
   <div data-sk="rbox" style="left:421px;top:122px;width:358px;height:476px;padding:16px 20px">
     <div class="hand b" style="font-size:24px;margin-bottom:10px">Simplified</div>
-    <div class="qi"><b>Uncertainty becomes three outcomes: pass, fail, second look.</b><span>One rule: range inside, across or outside spec. Quality can tune it.</span></div>
+    <div class="qi"><b>Uncertainty becomes three outcomes: pass, fail, second look.</b><span>Pass needs the range inside spec and enough lab coupons nearby. Quality tunes both.</span></div>
     <div class="qi"><b>"Range" = min–max of eight passes, not a ± interval.</b><span>Why: Derek sees the raw spread; a CI would imply false precision.</span></div>
     <div class="qi"><b>Escalation reason: five choices + optional note.</b><span>Why: fast for Maya, sortable for Derek.</span></div>
   </div>
@@ -211,26 +211,34 @@
 
   <div class="ui" style="left:56px;top:176px;width:668px;font-size:15px">
     <div class="row" style="height:28px;font-family:'Kalam','Segoe UI',sans-serif;font-weight:700">
-      <span style="width:70px">Sample</span><span style="width:130px">Mass</span><span style="width:150px">Porosity</span><span style="width:150px">Sheet R</span><span style="width:120px">Verdict</span>
+      <span style="width:70px">Sample</span><span style="width:105px">Mass</span><span style="width:125px">Porosity</span><span style="width:110px">Sheet R</span><span style="width:110px">Verdict</span><span style="width:105px">Status</span>
     </div>
     <div data-sk="hline" style="position:static;height:2px"></div>
-    <div id="m-r201" class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#201</span><span style="width:130px">15.1 ✓</span><span style="width:150px">35.6% ! Near</span><span style="width:150px">0.31 ✓</span><span id="m-v201" class="b" style="width:120px;color:#1d4ed8">Second look</span></div>
+    <div id="m-r201" class="row" style="height:36px;align-items:center"><span class="b" style="width:70px;font-size:20px">#201</span><span style="width:105px">15.1 ✓</span><span style="width:125px">35.6% ! Near</span><span style="width:110px">0.31 ✓</span><span id="m-v201" class="b" style="width:110px;color:#1d4ed8">Second look</span><span class="hand" style="width:130px;font-weight:300;font-size:14px">Awaiting decision</span></div>
     <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#202</span><span style="width:130px">14.9 ✓</span><span style="width:150px">33.2% ✓</span><span style="width:150px">0.26 ✓</span><span class="b" style="width:120px;color:#15803d">Pass</span></div>
+    <div class="row" style="height:36px;align-items:center"><span class="b" style="width:70px;font-size:20px">#202</span><span style="width:105px">14.9 ✓</span><span style="width:125px">33.2% ✓</span><span style="width:110px">0.26 ✓</span><span class="b" style="width:110px;color:#15803d">Pass</span><span class="hand" style="width:130px;font-weight:300;font-size:14px">Awaiting decision</span></div>
     <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#203</span><span style="width:130px">15.6 ↑ Above</span><span style="width:150px">34.0% ✓</span><span style="width:150px">0.29 ✓</span><span class="b" style="width:120px;color:#1d4ed8">Second look</span></div>
+    <div id="m-r203" class="row" style="height:36px;align-items:center"><span class="b" style="width:70px;font-size:20px">#203</span><span style="width:105px">15.6 ↑ Above</span><span style="width:125px">34.0% ✓</span><span style="width:110px">0.29 ✓</span><span class="b" style="width:110px;color:#1d4ed8">Second look</span><span class="hand" style="width:130px;font-weight:300;font-size:14px">Awaiting decision</span></div>
     <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#204</span><span style="width:130px">15.0 ✓</span><span style="width:150px">36.4% ↑ Above</span><span style="width:150px">0.24 ✓</span><span class="b" style="width:120px;color:#b91c1c">Fail</span></div>
+    <div class="row" style="height:36px;align-items:center"><span class="b" style="width:70px;font-size:20px">#204</span><span style="width:105px">15.0 ✓</span><span style="width:125px">36.4% ↑ Above</span><span style="width:110px">0.24 ✓</span><span class="b" style="width:110px;color:#b91c1c">Fail</span><span class="hand" style="width:130px;font-weight:300;font-size:14px">Awaiting decision</span></div>
     <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#205</span><span style="width:130px">14.6 ! Near</span><span style="width:150px">32.5% ✓</span><span style="width:150px">0.41 ↑ Above</span><span class="b" style="width:120px;color:#b91c1c">Fail</span></div>
+    <div class="row" style="height:36px;align-items:center"><span class="b" style="width:70px;font-size:20px">#205</span><span style="width:105px">14.6 ! Near</span><span style="width:125px">32.5% ✓</span><span style="width:110px">0.41 ↑ Above</span><span class="b" style="width:110px;color:#b91c1c">Fail</span><span class="hand" style="width:130px;font-weight:300;font-size:14px">Awaiting decision</span></div>
     <div data-sk="hline" style="position:static;height:2px"></div>
-    <div class="row" style="height:42px;align-items:center"><span class="b" style="width:70px;font-size:20px">#206</span><span style="width:130px">15.2 ✓</span><span style="width:150px">34.8% ✓</span><span style="width:150px">0.30 ✓</span><span class="b" style="width:120px;color:#15803d">Pass</span></div>
+    <div class="row" style="height:36px;align-items:center"><span class="b" style="width:70px;font-size:20px">#206</span><span style="width:105px">15.2 ✓</span><span style="width:125px">34.8% ✓</span><span style="width:110px">0.30 ✓</span><span class="b" style="width:110px;color:#15803d">Pass</span><span class="hand" style="width:130px;font-weight:300;font-size:14px">Awaiting decision</span></div>
   </div>
 
-  <div id="m-detail" data-sk="rbox" style="left:56px;top:470px;width:668px;height:110px;padding:8px 14px">
-    <div class="row"><span class="hand b" style="font-size:20px">#201 detail</span><span class="ui">Awaiting decision · Suggested: Send to engineer</span></div>
-    <div class="ui" style="font-size:16px;margin-top:4px">Porosity near limit. Spec under each value.</div>
-    <div id="m-ctrl" class="btn dark" data-sk="dark" style="position:absolute;left:420px;top:62px;width:220px;height:34px;font-size:15px">Send to engineer</div>
+  <div id="m-detail" data-sk="rbox" style="left:56px;top:432px;width:668px;height:156px;padding:6px 14px">
+    <div class="row"><span class="hand b" style="font-size:20px">#201 detail</span><span class="ui" style="font-size:15px">Awaiting decision · Suggested: <b>Send to engineer</b></span></div>
+    <div class="ui" style="display:flex;gap:18px;margin-top:4px;font-size:15px;line-height:1.2">
+      <div style="width:200px">Mass loading <b>15.1</b> mg/cm²<br><span class="hand" style="font-size:14px;font-weight:300">spec 14.5–15.5 · ✓ in spec</span></div>
+      <div style="width:200px">Porosity <b>35.6</b> %<br><span class="hand" style="font-size:14px;font-weight:300;color:#b45309">spec 32–36 · ! near limit</span></div>
+      <div style="width:220px">Sheet resistance <b>0.31</b> mΩ·cm²<br><span class="hand" style="font-size:14px;font-weight:300">spec 0.20–0.35 · ✓ in spec</span></div>
+    </div>
+    <div class="ui" style="font-size:15px;margin-top:6px"><b>Why:</b> porosity is in spec, but its repeat-scan range 35.2–36.1% crosses 36.0%.</div>
+    <div class="btn" data-sk="rbox" style="position:absolute;left:14px;top:110px;width:96px;height:34px;font-size:15px">Accept</div>
+    <div class="btn" data-sk="rbox" style="position:absolute;left:120px;top:110px;width:150px;height:34px;font-size:15px">Send for rework</div>
+    <div id="m-ctrl" class="btn dark" data-sk="dark" style="position:absolute;left:280px;top:110px;width:180px;height:34px;font-size:15px">Send to engineer</div>
+    <div class="hand" style="position:absolute;left:474px;top:106px;width:180px;font-size:13.5px;line-height:1.2;font-weight:300">Accept or rework here is an override: asks for a reason.</div>
   </div>
 
   <div id="a2-1" class="ann" style="left:770px;top:118px;width:390px">
@@ -239,19 +247,19 @@
   </div>
   <div id="a2-2" class="ann" style="left:770px;top:240px;width:390px">
     <h3><span class="num" data-sk="circle">2</span>Same three verdicts</h3>
-    Pass · Fail · Second look. Marks are point + range cues; the verdict is the suggestion she can still override.
+    Pass · Fail · Second look. Marks are point + range cues; the verdict is a suggestion she can override with a reason.
   </div>
   <div id="a2-3" class="ann" style="left:770px;top:360px;width:390px">
     <h3><span class="num" data-sk="circle">3</span>Open any row for detail</h3>
-    Specs, reason, and three actions. Escalating asks for her reason — not pre-filled.
+    Values, specs, reason, and three actions. The suggested one is highlighted; escalating asks for her reason, not pre-filled.
   </div>
   <div id="a2-4" class="ann" style="left:770px;top:480px;width:390px">
     <h3><span class="num" data-sk="circle">4</span>Scales to larger batches</h3>
     Glance table stays; cards become the drill-down. Same idea for 60 samples.
   </div>
   <i data-arrow="a2-1:l:0.25 m-r201:r:0.5" data-bend="-8"></i>
-  <i data-arrow="a2-2:l:0.25 m-v201:r:0.5" data-bend="6"></i>
-  <i data-arrow="a2-3:l:0.25 m-ctrl:r:0.5" data-bend="10"></i>
+  <i data-arrow="a2-2:l:0.25 m-r203:r:0.5" data-bend="6"></i>
+  <i data-arrow="a2-3:l:0.25 m-detail:r:0.12" data-bend="10"></i>
 
   <div class="bottom" style="top:614px;width:1100px">
     <b>20 minutes buys overview + detail,</b> not a longer list of the same cards.
@@ -261,7 +269,7 @@
 <!-- ============ MAYA 2 MIN ============ -->
 <section class="slide" id="m2">
   <h1 class="title">Maya, 2 min: Triage the Batch</h1>
-  <p class="sub"><b>Design decision:</b> same rules and records, grouped by verdict so the batch clears in one pass.</p>
+  <p class="sub"><b>Design decision:</b> same rules, grouped by verdict. Maya triages every sample; escalations stay visible until Derek decides.</p>
   <div class="section">PART 2</div>
 
   <div data-sk="rbox" data-sw="2.4" style="left:48px;top:118px;width:590px;height:488px"></div>
@@ -295,7 +303,7 @@
     <div><b>#203</b> · Second look<small>Mass loading just above limit, too close to call.</small></div>
     <div class="qb"><span class="mini" data-sk="rbox">Accept</span><span class="mini" data-sk="rbox">Rework</span><span class="mini dark" data-sk="dark">Engineer</span></div>
   </div>
-  <div class="hand b" style="left:72px;top:574px;font-size:19px">▸ Decisions made (0)</div>
+  <div id="q-pending" class="hand b" style="left:72px;top:574px;font-size:19px">▸ With Derek (0) &nbsp;·&nbsp; ▸ Decisions made (0)</div>
 
   <div class="hand b" style="left:700px;top:112px;font-size:23px">What changed vs. 20 min</div>
   <div id="a5-1" class="ann" style="left:700px;top:148px;width:450px">
@@ -312,7 +320,7 @@
   </div>
   <div id="a5-4" class="ann" style="left:700px;top:410px;width:450px">
     <h3><span class="num" data-sk="circle">4</span>Worst first</h3>
-    Fail before second looks. Accept against Fail asks for an override reason.
+    Fail before second looks. Any call against the suggestion asks for an override reason.
   </div>
   <i data-arrow="a5-1:l:0.25 q-count:r:0.5" data-bend="-12"></i>
   <i data-arrow="a5-2:l:0.25 q-bulk:r:0.5" data-bend="10"></i>
@@ -321,7 +329,7 @@
 
   <div data-sk="dash" style="left:700px;top:492px;width:460px;height:106px;padding:10px 16px">
     <div class="hand b" style="font-size:19px">What stays the same</div>
-    <div class="ui" style="font-size:16.5px;line-height:1.3">Same rule and records · Maya still decides every sample · escalation still needs a reason · switch back to 20 min any time.</div>
+    <div class="ui" style="font-size:15.5px;line-height:1.28">Same rule, reasons and records. Triage ends when every sample is decided or with Derek; the batch is done only when Derek decides his. Switch to 20 min any time.</div>
   </div>
 
   <div class="bottom" style="top:614px">
@@ -429,7 +437,7 @@
 
   <div class="ui" style="left:84px;top:520px;width:600px;font-size:17px;line-height:1.45">
     <div><b style="font-family:'Segoe UI';font-size:15px">|</b> = one plasma pass, fixed setup &nbsp;·&nbsp; <span class="ic" data-sk="legend-pt"></span> reported value</div>
-    <div><b>7 of 8 passes above 15.5; 1 in spec.</b> Spread 15.46–15.70 (0.24 mg/cm²).</div>
+    <div><b>7 of 8 passes above 15.5; 1 in spec.</b> Average 15.59 · spread 15.46–15.70.</div>
     <div class="hand" style="font-weight:300;font-size:15px">mg/cm² · illustrative repeat-pass data · min–max, not a ± interval</div>
   </div>
 
@@ -439,15 +447,15 @@
   </div>
   <div class="ann u" style="left:752px;top:236px;width:408px">
     <h3>What Derek can conclude</h3>
-    Most passes read high, but one lands in spec — noise alone could explain a 0.1 excess.
+    The passes lean high. One pass in spec shows the call is close, not that the sample is in spec.
   </div>
   <div class="ann u" style="left:752px;top:354px;width:408px">
     <h3>What it can't tell him</h3>
     Repeatable isn't accurate. A calibration bias would repeat on every pass.
   </div>
   <div class="ann u" style="left:752px;top:472px;width:408px">
-    <h3>Next step if the spread were wide</h3>
-    Check the setup and re-scan. More passes narrow random noise.
+    <h3>What more passes would do</h3>
+    Pin down the average (error shrinks ~1/√n), not the pass-to-pass spread. They never remove a bias.
   </div>
 
   <div class="bottom" style="top:614px">
@@ -478,22 +486,22 @@
     <div class="bar" id="u2-thin1"><span>15.4–15.5</span><i data-sk="fillbar" style="width:34px"></i><b>9</b></div>
     <div class="bar" id="u2-thin2"><span>&gt; 15.5</span><i data-sk="fillbar" style="width:15px"></i><b>4</b></div>
   </div>
-  <div id="u2-note" class="hand b" style="left:500px;top:420px;width:200px;font-size:17px;line-height:1.2">only 13 coupons above 15.4</div>
+  <div id="u2-note" class="hand b" style="left:500px;top:420px;width:200px;font-size:17px;line-height:1.2">only 13 of 93 above 15.4</div>
   <i data-arrow="u2-note:t:0.3 u2-thin1:b:0.55" data-bend="-10"></i>
 
   <div class="ui" style="left:436px;top:478px;width:270px;font-size:16px;line-height:1.3">Scatter shows 15 of 93 coupons. No lab value for #203 yet — "lab pending," not invented.</div>
 
   <div class="ann u" style="left:752px;top:118px;width:408px">
     <h3>What's physically happening</h3>
-    The model learned from coupons weighed in the lab. Few have loadings this high, and the high-end pairs scatter more.
+    The model learned from coupons weighed in the lab. In this illustrative set, few are this high, and those pairs scatter more.
   </div>
   <div class="ann u" style="left:752px;top:236px;width:408px">
     <h3>What Derek can conclude</h3>
-    Up here support is thin, so a consistent bias is possible — not proven.
+    In this set, only 13 of 93 coupons are above 15.4, so a consistent bias there is possible, not proven.
   </div>
   <div class="ann u" style="left:752px;top:354px;width:408px">
-    <h3>Why it differs from repeatability</h3>
-    Routing uses the repeat-scan range only. Reference coverage is evidence for Derek; it is naturally thin near any limit.
+    <h3>How it changes the suggestion</h3>
+    A tight repeat range can't earn a Pass alone. Under 10 coupons near the value, Pass becomes Second look. It never softens a Fail.
   </div>
   <div class="ann u" style="left:752px;top:472px;width:408px">
     <h3>Next step</h3>
@@ -501,7 +509,7 @@
   </div>
 
   <div class="bottom" style="top:614px">
-    <b>Together:</b> #203 straddles the limit on repeats, and lab support is thin there. Verify before rework.
+    <b>Together:</b> #203 straddles the limit on repeats, and this set has thin lab support there. Verify before rework.
   </div>
 </section>
 
@@ -594,7 +602,7 @@
 
   <div class="ui" style="left:68px;top:166px;width:500px">
     <div style="height:60px"><div class="b" style="font-size:20px">Interpreting user responsibilities</div><div class="hand small">Maya decides routine cases; Derek owns escalations.</div></div>
-    <div style="height:60px"><div class="b" style="font-size:20px">Defining decision logic</div><div class="hand small">Outside spec → rework · fully inside → accept · otherwise → engineer.</div></div>
+    <div style="height:60px"><div class="b" style="font-size:20px">Defining decision logic</div><div class="hand small">Outside spec → rework · inside + lab support → accept · else → engineer.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Determining information hierarchy</div><div class="hand small">Split Maya's view into 2 and 20 min; both stay simpler than Derek's.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Selecting appropriate technical detail</div><div class="hand small">Kept repeat scans and lab-coupon evidence out of Maya's view.</div></div>
     <div style="height:60px"><div class="b" style="font-size:20px">Reviewing and refining the experience</div><div class="hand small">e.g. locked Maya's edits once a case is with the engineer.</div></div>

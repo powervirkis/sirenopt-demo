@@ -60,28 +60,18 @@ export default function App() {
     setStatusMessage(message)
   }, [])
 
-  const handleMayaAccept = (id, { reason, override } = {}) => {
+  const handleMayaDecide = (id, disposition, { reason } = {}) => {
     setCases((prev) => {
-      const next = mayaDecide(prev, id, DECISION.accepted, { reason, override })
+      const next = mayaDecide(prev, id, disposition, { reason })
       if (next === prev) return prev
-      const label = override
-        ? `Sample #${id} accepted (override).`
-        : `Sample #${id} accepted.`
-      announce(`${label} ${formatProgress(summarizeCases(SAMPLES, next))}`)
+      const verb = disposition === DECISION.accepted ? 'accepted' : 'sent for rework'
+      const override = next[id]?.disposition?.override ? ' (override)' : ''
+      announce(`Sample #${id} ${verb}${override}. ${formatProgress(summarizeCases(SAMPLES, next))}`)
       return next
     })
   }
-
-  const handleMayaRework = (id) => {
-    setCases((prev) => {
-      const next = mayaDecide(prev, id, DECISION.rework)
-      if (next === prev) return prev
-      announce(
-        `Sample #${id} sent for rework. ${formatProgress(summarizeCases(SAMPLES, next))}`,
-      )
-      return next
-    })
-  }
+  const handleMayaAccept = (id, options) => handleMayaDecide(id, DECISION.accepted, options)
+  const handleMayaRework = (id, options) => handleMayaDecide(id, DECISION.rework, options)
 
   const handleMayaAcceptSuggested = () => {
     setCases((prev) => {

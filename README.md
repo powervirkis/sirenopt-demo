@@ -10,7 +10,11 @@ Operational demo for SirenOpt PlasmaSmart batch decisions with a shared escalati
 Top navigation is Maya / Derek. Inside Maya, a **20 min / 2 min** toggle changes how much she sees:
 
 - **20 min** — batch-at-a-glance table (pass / fail / second look), then per-sample cards with specs and Accept / Rework / Send to engineer.
-- **2 min** — triage: bulk **Accept N suggested passes**, then fail and second-look rows one at a time. No measurement rows. Escalation still requires a confirmed reason. Accept against a rework suggestion requires an override reason.
+- **2 min** — triage: bulk **Accept N suggested passes**, then fail and second-look rows one at a time. No measurement rows. Escalated samples stay listed under **With Derek** until he decides.
+
+Suggestion rule: any range entirely outside spec → rework; all ranges inside spec **and** at least 10 illustrative lab coupons near each value → accept; otherwise → send to engineer. Thin reference support only downgrades a Pass; it never softens a Fail.
+
+Override policy (both modes): following the suggestion needs no reason; escalating always needs a reason; any Accept or Rework that differs from the suggestion needs an override reason and is recorded as an override.
 
 Uncertainty ranges, repeat scans, and lab-coupon charts stay in Derek's view.
 

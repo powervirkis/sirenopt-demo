@@ -1,13 +1,13 @@
 import { useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { systemFindingFor } from '../data'
+import { DECISION, SUGGESTION_LABEL, systemFindingFor } from '../data'
 import { useDialog } from '../hooks/useDialog'
 
 /**
- * Required reason when Maya Accepts against a rework suggestion.
+ * Required reason when Maya's Accept or Rework goes against the suggestion.
  * Cancel leaves the sample unchanged and returns focus to the trigger.
  */
-export default function OverrideSheet({ sample, onConfirm, onCancel }) {
+export default function OverrideSheet({ sample, disposition, onConfirm, onCancel, onEscalate }) {
   const titleId = useId()
   const noteRef = useRef(null)
   const restoreFocusRef = useRef(true)
@@ -20,6 +20,10 @@ export default function OverrideSheet({ sample, onConfirm, onCancel }) {
   const [note, setNote] = useState('')
   const canSend = note.trim().length > 0
   const systemFinding = systemFindingFor(sample)
+  const isAccept = disposition === DECISION.accepted
+  const verb = isAccept ? 'Accept' : 'Send for rework'
+  const suggested = SUGGESTION_LABEL[sample.suggestion.kind]
+  const suggestsEngineer = sample.suggestion.kind === 'engineer'
 
   const confirm = () => {
     if (!canSend) return
@@ -43,10 +47,13 @@ export default function OverrideSheet({ sample, onConfirm, onCancel }) {
         className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border-2 border-line bg-panel p-4 shadow-xl sm:p-5"
       >
         <h2 id={titleId} className="text-xl font-bold text-ink">
-          Accept #{sample.id} against rework suggestion?
+          Are you sure?
         </h2>
-        <p className="mt-2 text-sm text-muted">
-          The system suggested Send for rework. Record why you are accepting instead.
+        <p className="mt-2 text-base text-ink">
+          You chose <b>{verb}</b> for #{sample.id}, but the system suggested <b>{suggested}</b>.
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          To go ahead, record why. It is saved as an override.
         </p>
 
         <div className="mt-4 rounded-xl border border-line bg-surface p-3">
@@ -64,7 +71,7 @@ export default function OverrideSheet({ sample, onConfirm, onCancel }) {
             onChange={(event) => setNote(event.target.value)}
             rows={3}
             className="focus-target mt-1 w-full rounded-lg border-2 border-line bg-panel px-3 py-2 text-sm text-ink"
-            placeholder="Why this sample can be accepted"
+            placeholder={isAccept ? 'Why this sample can be accepted' : 'Why this sample needs rework'}
           />
         </label>
 
@@ -73,10 +80,24 @@ export default function OverrideSheet({ sample, onConfirm, onCancel }) {
             type="button"
             disabled={!canSend}
             onClick={confirm}
-            className="focus-target min-h-12 flex-1 rounded-lg bg-pass px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            className={`focus-target min-h-12 flex-1 rounded-lg px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 ${
+              isAccept ? 'bg-pass' : 'bg-ink'
+            }`}
           >
-            Accept with override
+            {verb} with override
           </button>
+          {suggestsEngineer && onEscalate ? (
+            <button
+              type="button"
+              onClick={() => {
+                restoreFocusRef.current = false
+                onEscalate()
+              }}
+              className="focus-target min-h-12 flex-1 rounded-lg border-2 border-engineer px-4 text-sm font-semibold text-engineer hover:bg-engineer-bg"
+            >
+              Send to engineer instead
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onCancel}
