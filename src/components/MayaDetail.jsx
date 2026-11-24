@@ -1,98 +1,180 @@
-import { PROPERTY_ORDER, STATUS_META } from '../data'
-import SpecBar from './SpecBar'
+import { useRef } from 'react'
+import {
+  DISPOSITION,
+  DISPOSITION_META,
+  PROPERTY_ORDER,
+  RESULT_META,
+  canAccept,
+  getDisposition,
+} from '../data'
+import { useDialog } from '../hooks/useDialog'
+import SpecBar, { ChartLegend } from './SpecBar'
+import { DispositionChip, ResultChip } from './StatusChip'
 
-export default function MayaDetail({ sample, disposition, onBack, onSendToDerek, onHold }) {
+export default function MayaDetail({
+  sample,
+  dispositions,
+  onClose,
+  onAcceptOne,
+  onHold,
+  onRequestReview,
+  onViewEngineer,
+}) {
   if (!sample) return null
 
-  const meta = STATUS_META[sample.status]
-  const done = disposition === 'accepted' || disposition === 'escalated' || disposition === 'held'
+  const closeRef = useRef(null)
+  const containerRef = useDialog({ open: true, onClose, initialFocusRef: closeRef })
+  const result = sample.result || (sample.status === 'look' ? 'review' : sample.status)
+  const meta = RESULT_META[result]
+  const disposition = getDisposition(dispositions, sample.id)
+  const dispositionMeta = DISPOSITION_META[disposition]
+  const eligible = canAccept(sample, dispositions)
 
   return (
-    <div className="fixed inset-0 z-30 overflow-y-auto bg-surface">
+    <div
+      ref={containerRef}
+      className="fixed inset-0 z-40 overflow-y-auto bg-surface"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`maya-detail-title-${sample.id}`}
+    >
       <div className="slide-in mx-auto min-h-full max-w-3xl pb-10">
         <header className="sticky top-0 z-10 border-b border-line bg-panel/95 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
+              ref={closeRef}
               type="button"
-              onClick={onBack}
-              className="min-h-12 rounded-xl border-2 border-line px-4 text-sm font-semibold text-ink hover:bg-surface"
+              onClick={onClose}
+              className="min-h-11 min-w-11 rounded-xl border-2 border-line px-4 text-base font-semibold text-ink hover:bg-surface"
+              aria-label={`Close sample #${sample.id}`}
             >
               ← Back
             </button>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">Maya</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-muted">Maya</p>
           </div>
         </header>
 
         <div className="space-y-4 p-4 sm:p-6">
-          <div
-            className={`rounded-2xl border border-line border-l-4 bg-panel p-5 shadow-sm sm:p-6 ${meta.row}`}
-          >
+          <div className={`rounded-2xl border border-line border-l-4 bg-panel p-5 shadow-sm ${meta.row}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <h2 className="text-3xl font-bold tabular-nums text-ink">#{sample.id}</h2>
-              <span
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-bold uppercase tracking-wide ${meta.chip}`}
+              <h2
+                id={`maya-detail-title-${sample.id}`}
+                className="text-3xl font-bold tabular-nums text-ink"
               >
-                {meta.word}
-              </span>
+                #{sample.id}
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                <ResultChip result={result} />
+                <DispositionChip disposition={disposition} />
+              </div>
             </div>
             <p className="mt-3 text-base font-medium text-ink">{sample.drive.phrase}</p>
+            <p className="mt-2 text-sm text-muted">
+              Overall result: <strong className="text-ink">{meta.word}</strong>
+              {' · '}
+              Disposition: <strong className="text-ink">{dispositionMeta.label}</strong>
+            </p>
           </div>
 
-          {sample.status === 'pass' ? (
-            <div className="rounded-2xl border border-line bg-panel p-5 shadow-sm">
-              <p className="text-base font-medium text-ink">All three bands are inside spec</p>
+          <div className="rounded-2xl border border-line bg-panel p-4 shadow-sm sm:p-5">
+            <h3 className="mb-2 text-base font-semibold text-ink">All three properties</h3>
+            <ChartLegend />
+            <div className="mt-4 space-y-5">
+              {PROPERTY_ORDER.map((key) => (
+                <SpecBar
+                  key={key}
+                  propertyKey={key}
+                  value={sample.values[key]}
+                  status={sample.propertyStatus[key]}
+                  band={sample.bands[key]}
+                  explanation={sample.explanations[key]}
+                  size="lg"
+                />
+              ))}
+            </div>
+            {sample.secondary?.length > 0 && (
+              <div className="mt-4 rounded-lg bg-surface px-3 py-2 text-sm text-muted">
+                <p className="font-semibold text-ink">Also note</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {sample.secondary.map((s) => (
+                    <li key={s.reason}>{s.reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {eligible && (
               <button
                 type="button"
-                onClick={onBack}
-                className="mt-4 min-h-14 w-full rounded-xl border-2 border-line text-base font-semibold text-ink hover:bg-surface"
+                onClick={() => onAcceptOne(sample.id)}
+                className="min-h-14 w-full rounded-xl bg-pass text-lg font-semibold text-white hover:bg-green-800"
               >
-                Back
+                Accept #{sample.id}
               </button>
-            </div>
-          ) : (
-            <>
-              <div className="rounded-2xl border border-line bg-panel p-4 shadow-sm sm:p-5">
-                <div className="space-y-4">
-                  {PROPERTY_ORDER.map((key) => (
-                    <SpecBar
-                      key={key}
-                      propertyKey={key}
-                      value={sample.values[key]}
-                      status={sample.propertyStatus[key]}
-                      band={sample.bands[key]}
-                      size="lg"
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {!done && sample.status === 'look' && (
+            )}
+            {disposition === DISPOSITION.accepted && (
+              <p className="rounded-xl bg-pass-bg px-4 py-3 text-center text-base font-semibold text-pass">
+                Accepted
+              </p>
+            )}
+            {result === 'review' && disposition !== DISPOSITION.review_requested && (
+              <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  onClick={() => onSendToDerek(sample)}
-                  className="min-h-16 w-full rounded-xl bg-look text-lg font-semibold text-white hover:bg-amber-700"
+                  onClick={() => onViewEngineer(sample.id)}
+                  className="min-h-14 rounded-xl border-2 border-ink bg-panel px-4 text-base font-semibold text-ink hover:bg-surface"
                 >
-                  Send to Derek
+                  View engineer detail
                 </button>
-              )}
-              {!done && sample.status === 'fail' && (
+                <button
+                  type="button"
+                  onClick={() => onRequestReview(sample.id)}
+                  className="min-h-14 rounded-xl bg-look px-4 text-base font-semibold text-white hover:bg-amber-700"
+                >
+                  Request review (simulated)
+                </button>
+              </div>
+            )}
+            {result === 'fail' && disposition !== DISPOSITION.held && (
+              <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => onHold(sample.id)}
-                  className="min-h-16 w-full rounded-xl bg-hold text-lg font-semibold text-white hover:bg-red-800"
+                  className="min-h-14 rounded-xl bg-hold px-4 text-base font-semibold text-white hover:bg-red-800"
                 >
-                  Hold
+                  Hold #{sample.id}
                 </button>
-              )}
-              {done && (
-                <p className="rounded-xl bg-surface px-4 py-3 text-center text-sm font-medium text-muted">
-                  {disposition === 'escalated' && 'Sent to Derek'}
-                  {disposition === 'held' && 'Held'}
-                  {disposition === 'accepted' && 'Accepted'}
-                </p>
-              )}
-            </>
-          )}
+                <button
+                  type="button"
+                  onClick={() => onViewEngineer(sample.id)}
+                  className="min-h-14 rounded-xl border-2 border-ink bg-panel px-4 text-base font-semibold text-ink hover:bg-surface"
+                >
+                  View engineer detail
+                </button>
+              </div>
+            )}
+            {(disposition === DISPOSITION.held ||
+              disposition === DISPOSITION.review_requested) && (
+              <p className="rounded-xl bg-surface px-4 py-3 text-center text-base font-medium text-muted">
+                {dispositionMeta.label}
+                {result === 'review' || result === 'fail' ? (
+                  <>
+                    {' · '}
+                    <button
+                      type="button"
+                      onClick={() => onViewEngineer(sample.id)}
+                      className="font-semibold text-ink underline"
+                    >
+                      View engineer detail
+                    </button>
+                  </>
+                ) : null}
+              </p>
+            )}
+            {result === 'pass' && disposition === DISPOSITION.awaiting && !eligible ? null : null}
+          </div>
         </div>
       </div>
     </div>

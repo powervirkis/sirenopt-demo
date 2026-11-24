@@ -27,6 +27,8 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
   background: var(--color-surface);
   color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
@@ -34,6 +36,34 @@ body {
 
 button {
   font-family: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+html.large-text {
+  font-size: 112.5%;
+}
+
+html.high-contrast {
+  --color-pass: #14532d;
+  --color-pass-bg: #bbf7d0;
+  --color-look: #92400e;
+  --color-look-bg: #fde68a;
+  --color-hold: #7f1d1d;
+  --color-hold-bg: #fecaca;
+  --color-ink: #000000;
+  --color-muted: #1e293b;
+  --color-line: #334155;
+  --color-surface: #ffffff;
+  --color-panel: #ffffff;
+}
+
+html.high-contrast body {
+  background: #ffffff;
+  color: #000000;
 }
 
 @keyframes slide-in {
@@ -54,17 +84,6 @@ button {
   }
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .slide-in {
   animation: slide-in 200ms ease-out;
 }
@@ -73,6 +92,21 @@ button {
   animation: fade-in 150ms ease-out;
 }
 
-.toast-in {
-  animation: toast-in 180ms ease-out;
+@media (prefers-reduced-motion: reduce) {
+  .slide-in,
+  .fade-in {
+    animation: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

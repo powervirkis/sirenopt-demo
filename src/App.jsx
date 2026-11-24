@@ -1,104 +1,150 @@
 import { useCallback, useEffect, useState } from 'react'
 import BatchScreen from './components/BatchScreen'
-import EscalateSheet from './components/EscalateSheet'
 import MayaDetail from './components/MayaDetail'
 import ReviewerNotes from './components/ReviewerNotes'
-import { SAMPLES } from './data'
+import SampleDetail from './components/SampleDetail'
+import {
+  SAMPLES,
+  acceptEligible,
+  acceptOne,
+  holdOne,
+  requestReview,
+  summarize,
+} from './data'
+
+const DISPLAY_KEY = 'plasmasmart-display'
+
+function loadDisplay() {
+  try {
+    const raw = localStorage.getItem(DISPLAY_KEY)
+    if (!raw) return { largeText: false, highContrast: false }
+    return JSON.parse(raw)
+  } catch {
+    return { largeText: false, highContrast: false }
+  }
+}
 
 export default function App() {
   const [mode, setMode] = useState('20min')
-  const [selectedId, setSelectedId] = useState(null)
+  const [mayaId, setMayaId] = useState(null)
+  const [engineerId, setEngineerId] = useState(null)
   const [dispositions, setDispositions] = useState({})
-  const [escalateSample, setEscalateSample] = useState(null)
   const [reviewerOpen, setReviewerOpen] = useState(false)
-  const [toast, setToast] = useState(null)
-  const [lastPackage, setLastPackage] = useState(null)
-
-  const showToast = useCallback((message) => {
-    setToast(message)
-  }, [])
+  const [statusMessage, setStatusMessage] = useState('')
+  const [display, setDisplay] = useState(loadDisplay)
 
   useEffect(() => {
-    if (!toast) return undefined
-    const t = setTimeout(() => setToast(null), 3200)
-    return () => clearTimeout(t)
-  }, [toast])
+    localStorage.setItem(DISPLAY_KEY, JSON.stringify(display))
+    document.documentElement.classList.toggle('large-text', display.largeText)
+    document.documentElement.classList.toggle('high-contrast', display.highContrast)
+  }, [display])
 
-  const selected = SAMPLES.find((s) => s.id === selectedId) || null
+  const announce = useCallback((message) => {
+    setStatusMessage(message)
+  }, [])
 
-  const handleAcceptPassing = () => {
+  const mayaSample = SAMPLES.find((s) => s.id === mayaId) || null
+  const engineerSample = SAMPLES.find((s) => s.id === engineerId) || null
+  const overlayOpen = Boolean(mayaSample || engineerSample || reviewerOpen)
+
+  const handleAcceptOne = (id) => {
     setDispositions((prev) => {
-      const next = { ...prev }
-      SAMPLES.forEach((s) => {
-        if (s.status === 'pass' && !next[s.id]) next[s.id] = 'accepted'
-      })
+      const next = acceptOne(SAMPLES, prev, id)
+      const sum = summarize(SAMPLES, next)
+      announce(
+        `Sample #${id} accepted; ${sum.ready} sample${sum.ready === 1 ? '' : 's'} remain${sum.ready === 1 ? 's' : ''} ready.`,
+      )
       return next
     })
-    showToast('Passing samples accepted')
+  }
+
+  const handleAcceptEligible = () => {
+    setDispositions((prev) => {
+      const next = acceptEligible(SAMPLES, prev)
+      const sum = summarize(SAMPLES, next)
+      announce(
+        `Eligible passing samples accepted; ${sum.accepted} accepted, ${sum.ready} ready.`,
+      )
+      return next
+    })
   }
 
   const handleHold = (id) => {
-    setDispositions((d) => ({ ...d, [id]: 'held' }))
-    setSelectedId((cur) => (cur === id ? null : cur))
-    showToast(`Sample ${id} held`)
+    setDispositions((prev) => {
+      const next = holdOne(SAMPLES, prev, id)
+      announce(`Sample #${id} held. Result remains FAIL.`)
+      return next
+    })
   }
 
-  const openSendToDerek = (sample) => {
-    setEscalateSample(sample)
+  const handleRequestReview = (id) => {
+    setDispositions((prev) => {
+      const next = requestReview(SAMPLES, prev, id)
+      announce(`Sample #${id}: review requested (simulated). No message was sent.`)
+      return next
+    })
   }
 
-  const sendToDerek = (pkg) => {
-    if (!escalateSample) return
-    setLastPackage(pkg)
-    setDispositions((d) => ({ ...d, [escalateSample.id]: 'escalated' }))
-    setSelectedId((cur) => (cur === escalateSample.id ? null : cur))
-    showToast(`Sample ${escalateSample.id} sent to Derek`)
-    setEscalateSample(null)
+  const handleReset = () => {
+    setDispositions({})
+    setMayaId(null)
+    setEngineerId(null)
+    announce('Demo reset. Session actions cleared.')
   }
 
   return (
     <div className="min-h-full bg-surface">
-      <BatchScreen
-        mode={mode}
-        samples={SAMPLES}
-        dispositions={dispositions}
-        onModeChange={setMode}
-        onOpenSample={setSelectedId}
-        onAcceptPassing={handleAcceptPassing}
-        onSendToDerek={openSendToDerek}
-        onHold={handleHold}
-        onShowReviewerNotes={() => setReviewerOpen(true)}
-      />
-
-      {selected && (
-        <MayaDetail
-          sample={selected}
-          disposition={dispositions[selected.id]}
-          onBack={() => setSelectedId(null)}
-          onSendToDerek={openSendToDerek}
+      <div {...(overlayOpen ? { inert: '' } : {})}>
+        <BatchScreen
+          mode={mode}
+          samples={SAMPLES}
+          dispositions={dispositions}
+          onModeChange={setMode}
+          onOpenSample={setMayaId}
+          onAcceptOne={handleAcceptOne}
+          onAcceptEligible={handleAcceptEligible}
           onHold={handleHold}
+          onRequestReview={handleRequestReview}
+          onViewEngineer={setEngineerId}
+          onShowReviewerNotes={() => setReviewerOpen(true)}
+          onResetDemo={handleReset}
+          largeText={display.largeText}
+          highContrast={display.highContrast}
+          onToggleLargeText={() =>
+            setDisplay((d) => ({ ...d, largeText: !d.largeText }))
+          }
+          onToggleHighContrast={() =>
+            setDisplay((d) => ({ ...d, highContrast: !d.highContrast }))
+          }
+          statusMessage={statusMessage}
+        />
+      </div>
+
+      {mayaSample && (
+        <MayaDetail
+          sample={mayaSample}
+          dispositions={dispositions}
+          onClose={() => setMayaId(null)}
+          onAcceptOne={handleAcceptOne}
+          onHold={handleHold}
+          onRequestReview={handleRequestReview}
+          onViewEngineer={(id) => {
+            setMayaId(null)
+            setEngineerId(id)
+          }}
         />
       )}
 
-      <EscalateSheet
-        sample={escalateSample}
-        onCancel={() => setEscalateSample(null)}
-        onSend={sendToDerek}
-      />
-
-      <ReviewerNotes open={reviewerOpen} onClose={() => setReviewerOpen(false)} />
-
-      {toast && (
-        <div
-          className="toast-in fixed bottom-5 left-1/2 z-50 max-w-md -translate-x-1/2 rounded-xl bg-ink px-4 py-3 text-center text-sm font-medium text-white shadow-lg"
-          role="status"
-        >
-          {toast}
-        </div>
+      {engineerSample && (
+        <SampleDetail
+          sample={engineerSample}
+          dispositions={dispositions}
+          onBack={() => setEngineerId(null)}
+          onRequestReview={handleRequestReview}
+        />
       )}
 
-      {/* Debug: last package for Derek stays in memory; not shown as engineer charts */}
-      {lastPackage && <span className="sr-only">{JSON.stringify(lastPackage)}</span>}
+      <ReviewerNotes open={reviewerOpen} onClose={() => setReviewerOpen(false)} />
     </div>
   )
 }
