@@ -2,11 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import DerekView from './components/DerekView'
 import MayaView from './components/MayaView'
 import {
+  ACTOR,
   SAMPLES,
-  setDecision,
-  clearDecision,
-  summarizeDecisions,
-  recordEscalation,
+  summarizeCases,
+  mayaDecide,
+  confirmEscalation,
+  derekResolve,
+  requestVerification,
+  recordVerificationEvidence,
+  reopenCase,
   DECISION,
 } from './data'
 
@@ -26,14 +30,14 @@ function formatProgress(sum) {
   if (sum.complete) {
     return `Batch review complete · ${sum.accepted} accepted · ${sum.rework} sent for rework`
   }
-  return `${sum.unresolved} pending · ${sum.awaiting} awaiting decision · ${sum.engineer} awaiting engineer`
+  return `${sum.unresolved} pending · ${sum.awaiting} awaiting decision · ${sum.engineer} awaiting engineer · ${sum.verification} awaiting verification`
 }
 
 export default function App() {
   const [role, setRole] = useState('maya')
-  const [derekSampleId, setDerekSampleId] = useState(SAMPLES[0].id)
-  const [decisions, setDecisions] = useState({})
-  const [escalations, setEscalations] = useState({})
+  const [derekSampleId, setDerekSampleId] = useState(null)
+  const [derekTab, setDerekTab] = useState('escalations')
+  const [cases, setCases] = useState({})
   const [statusMessage, setStatusMessage] = useState('')
   const [display, setDisplay] = useState(loadDisplay)
 
@@ -47,53 +51,90 @@ export default function App() {
     setStatusMessage(message)
   }, [])
 
-  const handleAccept = (id) => {
-    setDecisions((prev) => {
-      const next = setDecision(prev, id, DECISION.accepted)
+  const handleMayaAccept = (id) => {
+    setCases((prev) => {
+      const next = mayaDecide(prev, id, DECISION.accepted)
       if (next === prev) return prev
-      announce(`Sample #${id} accepted. ${formatProgress(summarizeDecisions(SAMPLES, next))}`)
+      announce(`Sample #${id} accepted. ${formatProgress(summarizeCases(SAMPLES, next))}`)
       return next
     })
   }
 
-  const handleRework = (id) => {
-    setDecisions((prev) => {
-      const next = setDecision(prev, id, DECISION.rework)
+  const handleMayaRework = (id) => {
+    setCases((prev) => {
+      const next = mayaDecide(prev, id, DECISION.rework)
       if (next === prev) return prev
       announce(
-        `Sample #${id} sent for rework. ${formatProgress(summarizeDecisions(SAMPLES, next))}`,
+        `Sample #${id} sent for rework. ${formatProgress(summarizeCases(SAMPLES, next))}`,
       )
       return next
     })
   }
 
-  const handleEngineer = (id) => {
+  const handleEscalate = (id, { reasonId, note }) => {
     const sample = SAMPLES.find((s) => s.id === id)
     if (!sample) return
-
-    setEscalations((prev) => recordEscalation(prev, sample))
-
-    setDecisions((prev) => {
-      const next = setDecision(prev, id, DECISION.engineer)
+    setCases((prev) => {
+      const next = confirmEscalation(prev, sample, { reasonId, note })
       if (next === prev) return prev
       announce(
-        `Sample #${id} sent to engineer. ${formatProgress(summarizeDecisions(SAMPLES, next))}`,
+        `Sample #${id} sent to engineer. ${formatProgress(summarizeCases(SAMPLES, next))}`,
       )
       return next
     })
-
     setDerekSampleId(id)
   }
 
-  const handleRevert = (id) => {
-    setDecisions((prev) => {
-      const next = clearDecision(prev, id)
+  const handleMayaReopen = (id) => {
+    setCases((prev) => {
+      const next = reopenCase(prev, id, ACTOR.maya)
+      if (next === prev) return prev
+      announce(`Sample #${id} reopened. ${formatProgress(summarizeCases(SAMPLES, next))}`)
+      return next
+    })
+  }
+
+  const handleDerekResolve = (id, disposition, reason) => {
+    setCases((prev) => {
+      const next = derekResolve(prev, id, disposition, { reason })
+      if (next === prev) return prev
+      const label = disposition === DECISION.accepted ? 'accepted' : 'sent for rework'
+      announce(`Sample #${id} ${label} by Derek. ${formatProgress(summarizeCases(SAMPLES, next))}`)
+      return next
+    })
+  }
+
+  const handleRequestVerification = (id, payload) => {
+    setCases((prev) => {
+      const next = requestVerification(prev, id, payload)
       if (next === prev) return prev
       announce(
-        `Sample #${id} decision reverted. ${formatProgress(summarizeDecisions(SAMPLES, next))}`,
+        `Verification requested for sample #${id}. ${formatProgress(summarizeCases(SAMPLES, next))}`,
       )
       return next
     })
+  }
+
+  const handleRecordEvidence = (id, payload) => {
+    setCases((prev) => {
+      const next = recordVerificationEvidence(prev, id, payload)
+      if (next === prev) return prev
+      announce(
+        `Verification evidence recorded for sample #${id}. Awaiting engineer decision.`,
+      )
+      return next
+    })
+  }
+
+  const handleDerekReopen = (id) => {
+    setCases((prev) => {
+      const next = reopenCase(prev, id, ACTOR.derek)
+      if (next === prev) return prev
+      announce(`Sample #${id} reopened. ${formatProgress(summarizeCases(SAMPLES, next))}`)
+      return next
+    })
+    setDerekSampleId(id)
+    setDerekTab('escalations')
   }
 
   return (
@@ -132,7 +173,7 @@ export default function App() {
             </button>
           </div>
           <p className="hidden text-sm text-muted sm:block">
-            {role === 'maya' ? 'Batch decisions' : 'Engineering evidence'}
+            {role === 'maya' ? 'Batch decisions' : 'Engineering escalations'}
           </p>
         </div>
       </nav>
@@ -140,11 +181,11 @@ export default function App() {
       {role === 'maya' ? (
         <MayaView
           samples={SAMPLES}
-          decisions={decisions}
-          onAccept={handleAccept}
-          onRework={handleRework}
-          onEngineer={handleEngineer}
-          onRevert={handleRevert}
+          cases={cases}
+          onAccept={handleMayaAccept}
+          onRework={handleMayaRework}
+          onEscalate={handleEscalate}
+          onReopen={handleMayaReopen}
           statusMessage={statusMessage}
           largeText={display.largeText}
           highContrast={display.highContrast}
@@ -156,10 +197,16 @@ export default function App() {
       ) : (
         <DerekView
           samples={SAMPLES}
+          cases={cases}
           selectedId={derekSampleId}
           onSelect={setDerekSampleId}
-          decisions={decisions}
-          escalations={escalations}
+          tab={derekTab}
+          onTabChange={setDerekTab}
+          onResolve={handleDerekResolve}
+          onRequestVerification={handleRequestVerification}
+          onRecordEvidence={handleRecordEvidence}
+          onReopen={handleDerekReopen}
+          statusMessage={statusMessage}
           largeText={display.largeText}
           highContrast={display.highContrast}
           onToggleLargeText={() => setDisplay((d) => ({ ...d, largeText: !d.largeText }))}

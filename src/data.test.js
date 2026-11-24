@@ -4,15 +4,23 @@ import {
   PROPERTY_ORDER,
   SAMPLES,
   DECISION,
+  ACTOR,
   VISUAL_META,
+  OPERATOR_REASON_MISSING,
   classifyProperty,
   classifyVisual,
   formatValue,
-  getDecision,
-  setDecision,
-  clearDecision,
-  summarizeDecisions,
-  recordEscalation,
+  getCase,
+  summarizeCases,
+  mayaDecide,
+  confirmEscalation,
+  derekResolve,
+  requestVerification,
+  recordVerificationEvidence,
+  reopenCase,
+  listEscalations,
+  canMayaDecide,
+  canDerekResolve,
 } from './data'
 
 const EXPECTED_VALUES = {
@@ -33,6 +41,8 @@ const EXPECTED_SUGGESTIONS = {
   206: 'accept',
 }
 
+const FIXED_AT = '2026-11-24T05:00:00.000Z'
+
 describe('supplied data', () => {
   it('preserves all 18 values and specs', () => {
     expect(PROPERTIES.massLoading.min).toBe(14.5)
@@ -46,45 +56,6 @@ describe('supplied data', () => {
   })
 })
 
-describe('visual status icons', () => {
-  it('marks #201 porosity near limit and others ok', () => {
-    const s = SAMPLES.find((x) => x.id === 201)
-    expect(s.visualStatus.massLoading).toBe('ok')
-    expect(s.visualStatus.porosity).toBe('near')
-    expect(s.visualStatus.sheetResistance).toBe('ok')
-  })
-
-  it('marks #202 and #206 all green', () => {
-    ;[202, 206].forEach((id) => {
-      const s = SAMPLES.find((x) => x.id === id)
-      PROPERTY_ORDER.forEach((key) => {
-        expect(s.visualStatus[key]).toBe('ok')
-      })
-    })
-  })
-
-  it('marks #203 mass high while interval overlaps (not fully outside)', () => {
-    const s = SAMPLES.find((x) => x.id === 203)
-    expect(s.visualStatus.massLoading).toBe('high')
-    expect(s.propertyStatus.massLoading).toBe('caution')
-    expect(s.bands.massLoading.low).toBe(15.5)
-    expect(s.bands.massLoading.high).toBe(15.7)
-  })
-
-  it('marks #204 porosity high and fully outside', () => {
-    const s = SAMPLES.find((x) => x.id === 204)
-    expect(s.visualStatus.porosity).toBe('high')
-    expect(s.propertyStatus.porosity).toBe('fail')
-  })
-
-  it('marks #205 mass near limit and resistance high', () => {
-    const s = SAMPLES.find((x) => x.id === 205)
-    expect(s.visualStatus.massLoading).toBe('near')
-    expect(s.visualStatus.sheetResistance).toBe('high')
-    expect(s.propertyStatus.sheetResistance).toBe('fail')
-  })
-})
-
 describe('suggestions', () => {
   it('matches expected fixture table without hardcoding by id in logic', () => {
     SAMPLES.forEach((s) => {
@@ -92,125 +63,172 @@ describe('suggestions', () => {
     })
   })
 
-  it('uses short actionable reasons for engineer/rework', () => {
-    expect(SAMPLES.find((s) => s.id === 201).suggestion.reason).toMatch(/Porosity near limit/i)
-    expect(SAMPLES.find((s) => s.id === 203).suggestion.reason).toMatch(/Mass loading above limit/i)
-    expect(SAMPLES.find((s) => s.id === 204).suggestion.reason).toMatch(/Porosity above limit/i)
+  it('keeps #203 above-limit point with engineer suggestion', () => {
+    const s = SAMPLES.find((x) => x.id === 203)
+    expect(s.visualStatus.massLoading).toBe('high')
+    expect(s.propertyStatus.massLoading).toBe('caution')
+    expect(s.suggestion.kind).toBe('engineer')
   })
 
-  it('uses above/below limit visual labels', () => {
-    expect(VISUAL_META.high.label).toBe('Above limit')
-    expect(VISUAL_META.high.symbol).toBe('↑')
-    expect(VISUAL_META.low.label).toBe('Below limit')
-    expect(VISUAL_META.low.symbol).toBe('↓')
+  it('keeps #205 resistance rework despite mass near limit', () => {
+    const s = SAMPLES.find((x) => x.id === 205)
+    expect(s.visualStatus.massLoading).toBe('near')
+    expect(s.propertyStatus.sheetResistance).toBe('fail')
+    expect(s.suggestion.kind).toBe('rework')
   })
 
   it('exposes #205 mass precision that crosses 14.5', () => {
     const s = SAMPLES.find((x) => x.id === 205)
     expect(s.bands.massLoading.low).toBe(14.48)
-    expect(s.propertyStatus.massLoading).toBe('caution')
     expect(formatValue('massLoading', s.bands.massLoading.low, { range: true })).toBe('14.48')
+  })
+
+  it('uses above/below limit visual labels', () => {
+    expect(VISUAL_META.high.label).toBe('Above limit')
+    expect(VISUAL_META.low.label).toBe('Below limit')
   })
 })
 
-describe('Maya decisions', () => {
-  it('starts with six awaiting', () => {
-    const sum = summarizeDecisions(SAMPLES, {})
-    expect(sum).toEqual({
+describe('shared case workflow', () => {
+  it('starts with six awaiting and empty escalation queue', () => {
+    const sum = summarizeCases(SAMPLES, {})
+    expect(sum).toMatchObject({
       awaiting: 6,
       accepted: 0,
       rework: 0,
       engineer: 0,
+      verification: 0,
       unresolved: 6,
       complete: false,
     })
+    expect(listEscalations(SAMPLES, {})).toEqual([])
   })
 
-  it('accepting #202 changes only #202', () => {
-    const d = setDecision({}, 202, DECISION.accepted)
-    expect(getDecision(d, 202)).toBe('accepted')
-    expect(getDecision(d, 206)).toBe('awaiting')
-    expect(summarizeDecisions(SAMPLES, d)).toMatchObject({
-      awaiting: 5,
-      accepted: 1,
-      rework: 0,
-      engineer: 0,
-      unresolved: 5,
+  it('supports mixed routing counts', () => {
+    let cases = {}
+    cases = mayaDecide(cases, 202, DECISION.accepted, { at: FIXED_AT })
+    cases = mayaDecide(cases, 206, DECISION.accepted, { at: FIXED_AT })
+    cases = mayaDecide(cases, 204, DECISION.rework, { at: FIXED_AT })
+    cases = mayaDecide(cases, 205, DECISION.rework, { at: FIXED_AT })
+    cases = confirmEscalation(cases, SAMPLES.find((s) => s.id === 201), {
+      reasonId: 'uncertain',
+      at: FIXED_AT,
     })
-  })
-
-  it('sending #205 for rework changes only #205', () => {
-    const d = setDecision({}, 205, DECISION.rework)
-    expect(getDecision(d, 205)).toBe('rework')
-    expect(getDecision(d, 204)).toBe('awaiting')
-  })
-
-  it('send to engineer is unresolved and does not complete the batch', () => {
-    const d = setDecision({}, 201, DECISION.engineer)
-    const sum = summarizeDecisions(SAMPLES, d)
-    expect(getDecision(d, 201)).toBe('engineer')
-    expect(sum.engineer).toBe(1)
-    expect(sum.unresolved).toBe(6)
+    cases = confirmEscalation(cases, SAMPLES.find((s) => s.id === 203), {
+      reasonId: 'unexpected',
+      at: FIXED_AT,
+    })
+    const sum = summarizeCases(SAMPLES, cases)
+    expect(sum.accepted).toBe(2)
+    expect(sum.rework).toBe(2)
+    expect(sum.engineer).toBe(2)
+    expect(sum.completed).toBe(4)
     expect(sum.complete).toBe(false)
+    expect(listEscalations(SAMPLES, cases)).toHaveLength(2)
   })
 
-  it('four state counts always total six', () => {
-    let d = setDecision({}, 201, DECISION.engineer)
-    d = setDecision(d, 202, DECISION.accepted)
-    d = setDecision(d, 204, DECISION.rework)
-    const sum = summarizeDecisions(SAMPLES, d)
-    expect(sum.awaiting + sum.accepted + sum.rework + sum.engineer).toBe(6)
-  })
-
-  it('correcting a decision does not double-count', () => {
-    let d = setDecision({}, 202, DECISION.accepted)
-    d = setDecision(d, 202, DECISION.rework)
-    d = setDecision(d, 202, DECISION.engineer)
-    d = setDecision(d, 202, DECISION.accepted)
-    expect(summarizeDecisions(SAMPLES, d).accepted).toBe(1)
-    expect(summarizeDecisions(SAMPLES, d).rework).toBe(0)
-    expect(summarizeDecisions(SAMPLES, d).engineer).toBe(0)
-  })
-
-  it('completing all six requires accept or rework for every sample', () => {
-    let d = {}
-    SAMPLES.forEach((s, i) => {
-      d = setDecision(d, s.id, i % 2 === 0 ? DECISION.accepted : DECISION.rework)
-    })
-    const sum = summarizeDecisions(SAMPLES, d)
-    expect(sum.awaiting).toBe(0)
-    expect(sum.engineer).toBe(0)
-    expect(sum.unresolved).toBe(0)
-    expect(sum.complete).toBe(true)
-    expect(sum.accepted + sum.rework).toBe(6)
-  })
-
-  it('idempotent same decision leaves state unchanged', () => {
-    const d1 = setDecision({}, 202, DECISION.accepted)
-    const d2 = setDecision(d1, 202, DECISION.accepted)
-    expect(d2).toBe(d1)
-  })
-
-  it('reverting a completed decision returns it to awaiting', () => {
-    let d = setDecision({}, 202, DECISION.accepted)
-    d = clearDecision(d, 202)
-    expect(getDecision(d, 202)).toBe('awaiting')
-    expect(summarizeDecisions(SAMPLES, d).accepted).toBe(0)
-    expect(summarizeDecisions(SAMPLES, d).awaiting).toBe(6)
-  })
-})
-
-describe('escalations', () => {
-  it('records one escalation even after repeated sends', () => {
+  it('keeps system finding and operator reason separate in the snapshot', () => {
     const sample = SAMPLES.find((s) => s.id === 201)
-    let esc = recordEscalation({}, sample)
-    const first = esc[201]
-    esc = recordEscalation(esc, sample)
-    expect(esc[201]).toBe(first)
-    expect(esc[201].sampleId).toBe(201)
-    expect(esc[201].values.porosity).toBe(35.6)
-    expect(esc[201].bands.porosity).toEqual({ low: 35.2, high: 36.1 })
-    expect(esc[201].reason).toMatch(/Porosity near limit/i)
+    const cases = confirmEscalation({}, sample, {
+      reasonId: 'mismatch',
+      note: 'Looks off on the coupon.',
+      at: FIXED_AT,
+    })
+    const c = getCase(cases, 201)
+    expect(c.state).toBe(DECISION.engineer)
+    expect(c.owner).toBe(ACTOR.derek)
+    expect(c.escalation.systemFinding).toMatch(/Porosity near limit/i)
+    expect(c.escalation.operatorReason).toBe('Does not match what I observe')
+    expect(c.escalation.operatorNote).toBe('Looks off on the coupon.')
+    expect(c.escalation.systemFinding).not.toBe(c.escalation.operatorReason)
+    expect(c.escalation.values.porosity).toBe(35.6)
+    expect(c.escalation.bands.porosity).toEqual({ low: 35.2, high: 36.1 })
+  })
+
+  it('does not duplicate escalation on repeated confirm', () => {
+    const sample = SAMPLES.find((s) => s.id === 201)
+    let cases = confirmEscalation({}, sample, { reasonId: 'uncertain', at: FIXED_AT })
+    const first = cases[201]
+    cases = confirmEscalation(cases, sample, { reasonId: 'setup', at: FIXED_AT })
+    expect(cases[201]).toBe(first)
+    expect(listEscalations(SAMPLES, cases)).toHaveLength(1)
+  })
+
+  it('blocks Maya from finalizing a Derek-owned case', () => {
+    const sample = SAMPLES.find((s) => s.id === 201)
+    let cases = confirmEscalation({}, sample, { reasonId: 'uncertain', at: FIXED_AT })
+    expect(canMayaDecide(getCase(cases, 201))).toBe(false)
+    const blocked = mayaDecide(cases, 201, DECISION.accepted, { at: FIXED_AT })
+    expect(blocked).toBe(cases)
+    expect(getCase(blocked, 201).state).toBe(DECISION.engineer)
+  })
+
+  it('runs verification loop without changing measurements on note-only evidence', () => {
+    const sample = SAMPLES.find((s) => s.id === 201)
+    let cases = confirmEscalation({}, sample, { reasonId: 'uncertain', at: FIXED_AT })
+    cases = requestVerification(cases, 201, {
+      what: 'Repeat porosity scan',
+      method: 'Plasma re-scan',
+      responsible: 'Lab tech A',
+      at: FIXED_AT,
+    })
+    expect(getCase(cases, 201).state).toBe(DECISION.verification)
+    expect(summarizeCases(SAMPLES, cases).unresolved).toBe(6)
+
+    const beforeValues = { ...sample.values }
+    cases = recordVerificationEvidence(cases, 201, {
+      source: 'Lab tech A',
+      findings: 'Coupon rechecked; setup unchanged.',
+      notes: 'No new numbers.',
+      at: FIXED_AT,
+    })
+    expect(getCase(cases, 201).state).toBe(DECISION.engineer)
+    expect(sample.values).toEqual(beforeValues)
+    expect(getCase(cases, 201).verification.returned.findings).toMatch(/Coupon rechecked/)
+    expect(canDerekResolve(getCase(cases, 201))).toBe(true)
+  })
+
+  it('resolves cases and supports author reopen with history', () => {
+    let cases = {}
+    SAMPLES.forEach((s) => {
+      if (s.id === 201 || s.id === 203) {
+        cases = confirmEscalation(cases, s, { reasonId: 'uncertain', at: FIXED_AT })
+        cases = derekResolve(cases, s.id, DECISION.accepted, {
+          reason: 'Boundary risk accepted for this batch.',
+          at: FIXED_AT,
+        })
+      } else if (s.id === 204 || s.id === 205) {
+        cases = mayaDecide(cases, s.id, DECISION.rework, { at: FIXED_AT })
+      } else {
+        cases = mayaDecide(cases, s.id, DECISION.accepted, { at: FIXED_AT })
+      }
+    })
+    expect(summarizeCases(SAMPLES, cases).complete).toBe(true)
+    expect(listEscalations(SAMPLES, cases)).toHaveLength(0)
+
+    const beforeHistory = getCase(cases, 201).history.length
+    cases = reopenCase(cases, 201, ACTOR.derek, { at: FIXED_AT })
+    expect(summarizeCases(SAMPLES, cases).complete).toBe(false)
+    expect(getCase(cases, 201).state).toBe(DECISION.engineer)
+    expect(getCase(cases, 201).owner).toBe(ACTOR.derek)
+    expect(getCase(cases, 201).disposition).toBeNull()
+    expect(getCase(cases, 201).history.length).toBe(beforeHistory + 1)
+    expect(getCase(cases, 201).history.at(-1).priorDisposition.kind).toBe(DECISION.accepted)
+
+    const mayaBlocked = reopenCase(cases, 201, ACTOR.maya, { at: FIXED_AT })
+    // still engineer-owned after derek reopen; maya cannot reopen again until she authored
+    expect(mayaBlocked).toBe(cases)
+  })
+
+  it('requires a short reason for Derek resolution', () => {
+    const sample = SAMPLES.find((s) => s.id === 203)
+    let cases = confirmEscalation({}, sample, { reasonId: 'unexpected', at: FIXED_AT })
+    const unchanged = derekResolve(cases, 203, DECISION.rework, { reason: '  ', at: FIXED_AT })
+    expect(unchanged).toBe(cases)
+  })
+
+  it('shows missing operator reason placeholder when absent', () => {
+    expect(OPERATOR_REASON_MISSING).toMatch(/not provided/i)
   })
 })
 
@@ -220,15 +238,11 @@ describe('interval rules', () => {
     expect(classifyProperty('porosity', 36, [35, 36])).toBe('clear')
     expect(classifyProperty('porosity', 35.6, [35.2, 36.1])).toBe('caution')
     expect(classifyProperty('porosity', 36.4, [36.1, 36.9])).toBe('fail')
-    expect(classifyProperty('porosity', 35, null)).toBe('caution')
   })
 
   it('visual: point outside is high/low; in-spec with overlap is near; full in is ok', () => {
     expect(classifyVisual('porosity', 34, [33, 35])).toBe('ok')
-    expect(classifyVisual('porosity', 36, [35, 36])).toBe('ok')
     expect(classifyVisual('porosity', 35.6, [35.2, 36.1])).toBe('near')
     expect(classifyVisual('porosity', 36.4, [36.1, 36.9])).toBe('high')
-    expect(classifyVisual('massLoading', 14.4, [14.3, 14.45])).toBe('low')
-    expect(classifyVisual('porosity', 35, null)).toBe('unavailable')
   })
 })

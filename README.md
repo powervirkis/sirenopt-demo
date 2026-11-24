@@ -1,13 +1,17 @@
 # PlasmaSmart™ batch results prototype
 
-Operational demo for SirenOpt PlasmaSmart batch decisions.
+Operational demo for SirenOpt PlasmaSmart batch decisions with a shared escalation workflow.
 
 ## Roles
 
-- **Maya** — every sample must be **Accepted** or **Sent for rework** before the line moves on. Uncertain results can be **Sent to engineer** (unresolved).
-- **Derek** — select any sample and inspect ranges, repeatability, and reference coverage. Escalated samples are marked pending.
+- **Maya** — routine Accept / Send for rework; escalate with a confirmed reason.
+- **Derek** — owns escalated cases; Accept / Rework / Request verification; record returned evidence.
 
-Navigation is Maya / Derek only. There is no 20-minute / 2-minute switch in the product UI.
+Navigation is Maya / Derek only. There is no 20-minute / 2-minute switch in the product UI (present that comparison offline).
+
+## Ownership assumption (validate with SirenOpt)
+
+Maya owns routine decisions. After she confirms an escalation, Derek owns resolution and may record the final disposition. Maya can see status but cannot finalize Derek-owned cases. Returning a case to Maya would require an explicit ownership transfer (not implemented). Reopen is limited to the disposition author.
 
 ## Run
 
@@ -17,25 +21,18 @@ npm run dev
 npm test
 ```
 
-Decisions are session-only (clear on reload). Large text and High contrast store in `localStorage` (`plasmasmart-display`).
+Session state clears on reload. Large text and High contrast store in `localStorage` (`plasmasmart-display`).
 
-## Suggestions vs decisions
+## Workflow states
 
-Suggestions come from illustrative uncertainty ranges vs inclusive specs:
+Pending: Awaiting decision · Awaiting engineer · Awaiting verification  
+Completed: Accepted · Sent for rework
 
-1. Any trustworthy interval entirely outside → **Send for rework suggested**
-2. Else all three entirely inside → **Accept suggested**
-3. Else → **Send to engineer suggested**
+Escalation stores a snapshot of what Maya saw, with **System finding** and **Maya's reason** as separate fields. Verification: request → awaiting verification → record evidence → awaiting engineer → explicit Accept/Rework.
 
-Maya’s property icons (✓ / Near limit / High / Low) follow the point estimate plus interval; they are separate from the sample suggestion. Suggestions never auto-record a decision. Every fresh sample starts **Awaiting decision**.
+## Presenter notes
 
-## Presenter notes (not in Maya’s operational UI)
-
-See `PRESENTER_NOTES` in [`src/data.js`](src/data.js):
-
-- Uncertainty ranges and lab scatters are **illustrative**.
-- Proposed interval rules to validate with quality; #203 boundary overlap → engineer; #205 mass 14.48–14.65.
-- Escalation is in-app only (one record per sample). Awaiting engineer is not final disposition.
+See `PRESENTER_NOTES` in [`src/data.js`](src/data.js): illustrative uncertainty, interval rules, ownership assumption, and #203/#205 boundary cases.
 
 ## Stack
 

@@ -1,5 +1,7 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import {
+  ACTOR,
+  ACTOR_META,
   BATCH,
   DECISION,
   DECISION_META,
@@ -7,11 +9,17 @@ import {
   PROPERTY_ORDER,
   SUGGESTION_META,
   VISUAL_META,
+  canMayaDecide,
+  canReopen,
   formatValue,
-  getDecision,
-  summarizeDecisions,
+  getCase,
+  isCompletedState,
+  isPendingState,
+  operatorReasonDisplay,
+  summarizeCases,
 } from '../data'
-import DisplayToggle from './DisplayToggle'
+import AccessibilityMenu from './AccessibilityMenu'
+import EscalationSheet from './EscalationSheet'
 
 const MOVE_MS = 420
 const DROP_MS = 480
@@ -262,42 +270,87 @@ function DecisionActions({ sample, decision, onAccept, onRework, onEngineer }) {
   )
 }
 
-function CompletedDecision({ sample, decision, onRevert }) {
-  const isAccept = decision === DECISION.accepted
-  const label = isAccept ? 'Accept' : 'Send for rework'
+function EscalatedStatus({ caseRecord }) {
+  const owner = ACTOR_META[caseRecord.owner]?.short || 'Derek'
+  const stateMeta = DECISION_META[caseRecord.state]
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-      <div
-        role="status"
-        className={`inline-flex min-h-12 items-center justify-center rounded-lg px-4 text-sm font-semibold text-white ${
-          isAccept ? 'bg-pass ring-2 ring-pass ring-offset-2' : 'bg-hold ring-2 ring-hold ring-offset-2'
-        }`}
-      >
-        <span className="sr-only">Recorded decision for sample #{sample.id}: </span>
-        {label}
+    <div className="space-y-2 rounded-xl border border-engineer/30 bg-engineer-bg/40 p-3">
+      <p className={`text-sm font-semibold ${stateMeta.className}`}>
+        {stateMeta.label} · {owner}
+      </p>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">System finding</p>
+        <p className="text-sm text-ink">
+          {caseRecord.escalation?.systemFinding || 'System finding unavailable.'}
+        </p>
       </div>
-      <button
-        type="button"
-        onClick={() => onRevert(sample.id)}
-        className="min-h-11 rounded px-1 text-sm font-medium text-engineer underline decoration-engineer/50 underline-offset-2 hover:decoration-engineer"
-        aria-label={`Revert decision for sample #${sample.id}`}
-      >
-        Revert
-      </button>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">Maya&apos;s reason</p>
+        <p className="text-sm text-ink">{operatorReasonDisplay(caseRecord.escalation)}</p>
+      </div>
+      {caseRecord.state === DECISION.verification && caseRecord.verification ? (
+        <p className="text-sm text-look">
+          Waiting for {caseRecord.verification.responsible}: {caseRecord.verification.what}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function CompletedRecord({ sample, caseRecord, onReopen }) {
+  const disposition = caseRecord.disposition
+  const isAccept = disposition?.kind === DECISION.accepted
+  const canOpen = canReopen(caseRecord, ACTOR.maya)
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div
+          role="status"
+          className={`inline-flex min-h-12 items-center justify-center rounded-lg px-4 text-sm font-semibold text-white ${
+            isAccept
+              ? 'bg-pass ring-2 ring-pass ring-offset-2'
+              : 'bg-hold ring-2 ring-hold ring-offset-2'
+          }`}
+        >
+          {isAccept ? 'Accept' : 'Send for rework'}
+        </div>
+        {canOpen ? (
+          <button
+            type="button"
+            data-action="reopen"
+            onClick={() => onReopen(sample.id)}
+            className="min-h-11 rounded px-1 text-sm font-medium text-engineer underline decoration-engineer/50 underline-offset-2 hover:decoration-engineer"
+            aria-label={`Reopen decision for sample #${sample.id}`}
+          >
+            Reopen
+          </button>
+        ) : null}
+      </div>
+      <p className="text-sm text-muted">
+        {disposition?.authorLabel || 'Unknown'} · {disposition?.reason || 'No reason recorded.'}
+      </p>
     </div>
   )
 }
 
 function SampleCard({
   sample,
-  decision,
-  completed = false,
+  caseRecord,
   onAccept,
   onRework,
-  onEngineer,
-  onRevert,
+  onRequestEscalate,
+  onReopen,
 }) {
-  const decisionMeta = DECISION_META[decision]
+  const decisionMeta = DECISION_META[caseRecord.state]
+  const editable = canMayaDecide(caseRecord)
+  const escalated =
+    caseRecord.owner === ACTOR.derek &&
+    (caseRecord.state === DECISION.engineer || caseRecord.state === DECISION.verification)
+  const completed = isCompletedState(caseRecord.state)
+  const statusLabel = escalated
+    ? `${decisionMeta.label} · ${ACTOR_META[caseRecord.owner].short}`
+    : decisionMeta.label
+
   return (
     <article
       className="rounded-xl border border-line bg-panel p-3.5 shadow-sm sm:p-4"
@@ -310,10 +363,10 @@ function SampleCard({
           className="text-xl font-bold tabular-nums text-ink"
         >
           #{sample.id}
-          <span className="sr-only"> — {decisionMeta.label}</span>
+          <span className="sr-only"> — {statusLabel}</span>
         </h2>
         <p className={`text-sm font-semibold ${decisionMeta.className}`} aria-hidden="true">
-          {decisionMeta.label}
+          {statusLabel}
         </p>
       </div>
 
@@ -321,25 +374,34 @@ function SampleCard({
         <MeasurementRows sample={sample} />
       </div>
 
-      {!completed ? (
+      {editable ? (
+        <>
+          <div className="mt-3 border-t border-line pt-3">
+            <Recommendation suggestion={sample.suggestion} />
+          </div>
+          <div className="mt-3">
+            <DecisionActions
+              sample={sample}
+              decision={caseRecord.state}
+              onAccept={onAccept}
+              onRework={onRework}
+              onEngineer={onRequestEscalate}
+            />
+          </div>
+        </>
+      ) : null}
+
+      {escalated ? (
         <div className="mt-3 border-t border-line pt-3">
-          <Recommendation suggestion={sample.suggestion} />
+          <EscalatedStatus caseRecord={caseRecord} />
         </div>
       ) : null}
 
-      <div className="mt-3">
-        {completed ? (
-          <CompletedDecision sample={sample} decision={decision} onRevert={onRevert} />
-        ) : (
-          <DecisionActions
-            sample={sample}
-            decision={decision}
-            onAccept={onAccept}
-            onRework={onRework}
-            onEngineer={onEngineer}
-          />
-        )}
-      </div>
+      {completed ? (
+        <div className="mt-3 border-t border-line pt-3">
+          <CompletedRecord sample={sample} caseRecord={caseRecord} onReopen={onReopen} />
+        </div>
+      ) : null}
     </article>
   )
 }
@@ -367,36 +429,31 @@ function ProgressSummary({ counts }) {
       <span className="text-muted">
         {' '}
         · {counts.awaiting} awaiting decision · {counts.engineer} awaiting engineer ·{' '}
-        {counts.accepted} accepted · {counts.rework} rework
+        {counts.verification} awaiting verification · {counts.accepted} accepted ·{' '}
+        {counts.rework} rework
       </span>
     </p>
   )
 }
 
-function isPendingDecision(decision) {
-  return decision === DECISION.awaiting || decision === DECISION.engineer
-}
-
-function isCompletedDecision(decision) {
-  return decision === DECISION.accepted || decision === DECISION.rework
-}
-
 export default function MayaView({
   samples,
-  decisions,
+  cases,
   onAccept,
   onRework,
-  onEngineer,
-  onRevert,
+  onEscalate,
+  onReopen,
   statusMessage,
   largeText,
   highContrast,
   onToggleLargeText,
   onToggleHighContrast,
 }) {
-  const counts = summarizeDecisions(samples, decisions)
-  const pending = samples.filter((s) => isPendingDecision(getDecision(decisions, s.id)))
-  const completed = samples.filter((s) => isCompletedDecision(getDecision(decisions, s.id)))
+  const counts = summarizeCases(samples, cases)
+  const pending = samples.filter((s) => isPendingState(getCase(cases, s.id).state))
+  const completed = samples.filter((s) => isCompletedState(getCase(cases, s.id).state))
+  const [escalateSampleId, setEscalateSampleId] = useState(null)
+  const escalateSample = samples.find((s) => s.id === escalateSampleId) || null
   const focusPlanRef = useRef(null)
   const flipRef = useRef(null)
 
@@ -417,20 +474,15 @@ export default function MayaView({
       }
     }
 
-    if (plan.kind === 'stay-engineer') {
-      focusEl(
-        document.querySelector(
-          `[data-sample-actions="${plan.sampleId}"] [data-action="engineer"]`,
-        ),
-      )
+    if (plan.kind === 'after-escalate') {
+      focusEl(document.querySelector(`[data-sample-card="${plan.sampleId}"]`))
       return
     }
 
     if (plan.kind === 'after-complete') {
-      const nextPending = samples.filter((s) => isPendingDecision(getDecision(decisions, s.id)))
+      const nextPending = samples.filter((s) => getCase(cases, s.id).state === DECISION.awaiting)
       const after = nextPending.find((s) => s.id > plan.sampleId)
       const target = after || nextPending[0]
-      // Keep focus in the pending list so the drop animation can play without a jump-scroll.
       if (target) {
         focusEl(
           document.querySelector(`[data-sample-actions="${target.id}"] [data-action="accept"]`),
@@ -441,14 +493,14 @@ export default function MayaView({
       return
     }
 
-    if (plan.kind === 'after-revert') {
+    if (plan.kind === 'after-reopen') {
       focusEl(
         document.querySelector(
           `[data-sample-actions="${plan.sampleId}"] [data-action="accept"]`,
         ),
       )
     }
-  }, [decisions, samples])
+  }, [cases, samples])
 
   const beginListMove = (id, focusKind, commit) => {
     const prevRects = captureCardPositions()
@@ -462,13 +514,14 @@ export default function MayaView({
 
   const handleAccept = (id) => beginListMove(id, 'after-complete', onAccept)
   const handleRework = (id) => beginListMove(id, 'after-complete', onRework)
-  const handleRevert = (id) => beginListMove(id, 'after-revert', onRevert)
+  const handleReopen = (id) => beginListMove(id, 'after-reopen', onReopen)
 
-  const handleEngineer = (id) => {
-    // Stays in Pending — light settle only, no section move.
+  const handleConfirmEscalate = ({ reasonId, note }) => {
+    if (!escalateSample) return
+    const id = escalateSample.id
+    setEscalateSampleId(null)
     if (!prefersReducedMotion()) {
-      const el = document.querySelector(`[data-sample-card="${id}"]`)
-      el?.animate(
+      document.querySelector(`[data-sample-card="${id}"]`)?.animate(
         [
           { transform: 'scale(1)' },
           { transform: 'scale(0.985)' },
@@ -477,8 +530,8 @@ export default function MayaView({
         { duration: 220, easing: 'ease-out' },
       )
     }
-    focusPlanRef.current = { kind: 'stay-engineer', sampleId: id }
-    onEngineer(id)
+    focusPlanRef.current = { kind: 'after-escalate', sampleId: id }
+    onEscalate(id, { reasonId, note })
   }
 
   return (
@@ -494,18 +547,12 @@ export default function MayaView({
           </p>
           <MeasurementKey />
         </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Display">
-          <DisplayToggle
-            label="Large text"
-            pressed={largeText}
-            onClick={onToggleLargeText}
-          />
-          <DisplayToggle
-            label="High contrast"
-            pressed={highContrast}
-            onClick={onToggleHighContrast}
-          />
-        </div>
+        <AccessibilityMenu
+          largeText={largeText}
+          highContrast={highContrast}
+          onToggleLargeText={onToggleLargeText}
+          onToggleHighContrast={onToggleHighContrast}
+        />
       </header>
 
       <ProgressSummary counts={counts} />
@@ -526,24 +573,21 @@ export default function MayaView({
             tabIndex={-1}
             data-testid="batch-complete-message"
           >
-            All samples decided. Batch review complete.
+            Batch review complete · {counts.accepted} accepted · {counts.rework} sent for rework
           </p>
         ) : (
           <ul className="sample-list mt-3 space-y-3">
-            {pending.map((sample) => {
-              const decision = getDecision(decisions, sample.id)
-              return (
-                <li key={sample.id} className="sample-list-item">
-                  <SampleCard
-                    sample={sample}
-                    decision={decision}
-                    onAccept={handleAccept}
-                    onRework={handleRework}
-                    onEngineer={handleEngineer}
-                  />
-                </li>
-              )
-            })}
+            {pending.map((sample) => (
+              <li key={sample.id} className="sample-list-item">
+                <SampleCard
+                  sample={sample}
+                  caseRecord={getCase(cases, sample.id)}
+                  onAccept={handleAccept}
+                  onRework={handleRework}
+                  onRequestEscalate={setEscalateSampleId}
+                />
+              </li>
+            ))}
           </ul>
         )}
       </section>
@@ -556,22 +600,26 @@ export default function MayaView({
               Decisions made ({completed.length})
             </h2>
             <ul className="sample-list mt-3 space-y-3">
-              {completed.map((sample) => {
-                const decision = getDecision(decisions, sample.id)
-                return (
-                  <li key={sample.id} className="sample-list-item">
-                    <SampleCard
-                      sample={sample}
-                      decision={decision}
-                      completed
-                      onRevert={handleRevert}
-                    />
-                  </li>
-                )
-              })}
+              {completed.map((sample) => (
+                <li key={sample.id} className="sample-list-item">
+                  <SampleCard
+                    sample={sample}
+                    caseRecord={getCase(cases, sample.id)}
+                    onReopen={handleReopen}
+                  />
+                </li>
+              ))}
             </ul>
           </section>
         </>
+      ) : null}
+
+      {escalateSample ? (
+        <EscalationSheet
+          sample={escalateSample}
+          onConfirm={handleConfirmEscalate}
+          onCancel={() => setEscalateSampleId(null)}
+        />
       ) : null}
     </div>
   )

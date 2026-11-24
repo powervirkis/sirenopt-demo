@@ -13,8 +13,13 @@
  * 3. else → engineer
  * Missing/invalid evidence blocks Accept; an outside interval still wins rework.
  *
- * Maya decision: awaiting | accepted | rework | engineer
+ * Shared workflow case (one record per sample):
+ * awaiting | engineer | verification | accepted | rework
+ * Pending = awaiting + engineer + verification.
  * Batch complete only when every sample is accepted or rework.
+ *
+ * Ownership assumption (validate with SirenOpt): Maya owns routine decisions.
+ * After she escalates, Derek owns resolution and may record the final disposition.
  */
 
 export const BATCH = {
@@ -187,11 +192,23 @@ export const LAB_COUPONS = {
   },
 }
 
+export const ACTOR = {
+  maya: 'maya',
+  derek: 'derek',
+}
+
+export const ACTOR_META = {
+  maya: { label: 'Maya Chen', short: 'Maya' },
+  derek: { label: 'Derek Okonkwo', short: 'Derek' },
+}
+
+/** Workflow states — keep measurement findings and recommendations separate. */
 export const DECISION = {
   awaiting: 'awaiting',
   accepted: 'accepted',
   rework: 'rework',
   engineer: 'engineer',
+  verification: 'verification',
 }
 
 export const DECISION_META = {
@@ -199,7 +216,22 @@ export const DECISION_META = {
   accepted: { label: 'Accepted', short: 'Accepted', className: 'text-pass' },
   rework: { label: 'Sent for rework', short: 'Rework', className: 'text-hold' },
   engineer: { label: 'Awaiting engineer', short: 'Engineer', className: 'text-engineer' },
+  verification: {
+    label: 'Awaiting verification',
+    short: 'Verification',
+    className: 'text-look',
+  },
 }
+
+export const ESCALATION_REASONS = [
+  { id: 'uncertain', label: 'Uncertain result' },
+  { id: 'mismatch', label: 'Does not match what I observe' },
+  { id: 'unexpected', label: 'Unexpected for this batch' },
+  { id: 'setup', label: 'Concern about sample or measurement setup' },
+  { id: 'other', label: 'Other', requiresNote: true },
+]
+
+export const OPERATOR_REASON_MISSING = 'Operator reason not provided.'
 
 export const SUGGESTION_META = {
   accept: {
@@ -479,76 +511,409 @@ export function enrichSample(raw, ticksById = REPEAT_TICKS) {
 
 export const SAMPLES = RAW_SAMPLES.map((r) => enrichSample(r))
 
-export function getDecision(decisions, id) {
-  return decisions[id] || DECISION.awaiting
+function nowIso() {
+  return new Date().toISOString()
 }
 
-/** Decision counts only — not suggestions. Awaiting engineer is unresolved. */
-export function summarizeDecisions(samples, decisions = {}) {
+function emptyCase(sampleId) {
+  return {
+    sampleId,
+    state: DECISION.awaiting,
+    owner: ACTOR.maya,
+    escalation: null,
+    verification: null,
+    disposition: null,
+    history: [],
+  }
+}
+
+export function getCase(cases, id) {
+  return cases[id] || emptyCase(id)
+}
+
+/** @deprecated Prefer getCase; kept for compatibility with older call sites. */
+export function getDecision(cases, id) {
+  return getCase(cases, id).state
+}
+
+export function isPendingState(state) {
+  return (
+    state === DECISION.awaiting ||
+    state === DECISION.engineer ||
+    state === DECISION.verification
+  )
+}
+
+export function isCompletedState(state) {
+  return state === DECISION.accepted || state === DECISION.rework
+}
+
+export function canMayaDecide(caseRecord) {
+  return caseRecord.state === DECISION.awaiting && caseRecord.owner === ACTOR.maya
+}
+
+export function canDerekResolve(caseRecord) {
+  return (
+    caseRecord.owner === ACTOR.derek &&
+    (caseRecord.state === DECISION.engineer || caseRecord.state === DECISION.verification)
+  )
+}
+
+export function canReopen(caseRecord, actor) {
+  return (
+    isCompletedState(caseRecord.state) &&
+    caseRecord.disposition?.author === actor
+  )
+}
+
+function pushHistory(caseRecord, event) {
+  return {
+    ...caseRecord,
+    history: [...caseRecord.history, { ...event, at: event.at || nowIso() }],
+  }
+}
+
+function writeCase(cases, id, nextCase) {
+  return { ...cases, [id]: nextCase }
+}
+
+/** Counts from shared cases — not suggestions. */
+export function summarizeCases(samples, cases = {}) {
   let awaiting = 0
   let accepted = 0
   let rework = 0
   let engineer = 0
+  let verification = 0
   samples.forEach((s) => {
-    const d = getDecision(decisions, s.id)
-    if (d === DECISION.accepted) accepted += 1
-    else if (d === DECISION.rework) rework += 1
-    else if (d === DECISION.engineer) engineer += 1
+    const state = getCase(cases, s.id).state
+    if (state === DECISION.accepted) accepted += 1
+    else if (state === DECISION.rework) rework += 1
+    else if (state === DECISION.engineer) engineer += 1
+    else if (state === DECISION.verification) verification += 1
     else awaiting += 1
   })
-  const unresolved = awaiting + engineer
+  const unresolved = awaiting + engineer + verification
   return {
     awaiting,
     accepted,
     rework,
     engineer,
+    verification,
     unresolved,
+    pending: unresolved,
+    completed: accepted + rework,
     complete: unresolved === 0,
   }
 }
 
-const FINAL_OR_ESCALATE = new Set([
-  DECISION.accepted,
-  DECISION.rework,
-  DECISION.engineer,
-])
-
-/** Set or correct a decision. Idempotent. Engineer is not a final disposition. */
-export function setDecision(decisions, id, next) {
-  if (!FINAL_OR_ESCALATE.has(next)) return decisions
-  if (getDecision(decisions, id) === next) return decisions
-  return { ...decisions, [id]: next }
+/** @deprecated Prefer summarizeCases. */
+export function summarizeDecisions(samples, cases = {}) {
+  return summarizeCases(samples, cases)
 }
 
-/** Clear a recorded accept/rework/engineer decision back to awaiting. */
-export function clearDecision(decisions, id) {
-  if (!(id in decisions)) return decisions
-  const next = { ...decisions }
-  delete next[id]
-  return next
+function systemFindingText(sample) {
+  if (sample.suggestion.reason) return sample.suggestion.reason
+  if (sample.suggestion.kind === 'accept') return 'All three properties within inclusive limits.'
+  return SUGGESTION_META[sample.suggestion.kind]?.label || 'System finding unavailable.'
+}
+
+export function buildEscalationSnapshot(sample, { reasonId, reasonLabel, note, at } = {}) {
+  const bands = {}
+  const specs = {}
+  PROPERTY_ORDER.forEach((key) => {
+    const p = PROPERTIES[key]
+    const b = sample.bands[key]
+    bands[key] = b ? { low: b.low, high: b.high } : null
+    specs[key] = { min: p.min, max: p.max, unit: p.unit, label: p.label }
+  })
+  return {
+    sampleId: sample.id,
+    batchId: BATCH.id,
+    values: { ...sample.values },
+    bands,
+    specs,
+    recommendationKind: sample.suggestion.kind,
+    systemFinding: systemFindingText(sample),
+    operatorReasonId: reasonId || null,
+    operatorReason: reasonLabel || OPERATOR_REASON_MISSING,
+    operatorNote: note?.trim() || '',
+    actor: ACTOR.maya,
+    actorLabel: ACTOR_META.maya.label,
+    at: at || nowIso(),
+  }
 }
 
 /**
- * One in-app escalation record per sample. Repeated Send to engineer does not
- * create duplicates. Carries sample ID, measurements, bands, and reason.
+ * Maya Accept / Send for rework while she owns the sample.
+ * Rejected if the case is already escalated or owned by Derek.
  */
-export function recordEscalation(escalations, sample) {
-  if (escalations[sample.id]) return escalations
-  const bands = {}
-  PROPERTY_ORDER.forEach((key) => {
-    const b = sample.bands[key]
-    bands[key] = b ? { low: b.low, high: b.high } : null
-  })
-  return {
-    ...escalations,
-    [sample.id]: {
-      sampleId: sample.id,
-      values: { ...sample.values },
-      bands,
-      reason: sample.suggestion.reason || SUGGESTION_META.engineer.label,
-      suggestionKind: sample.suggestion.kind,
-    },
+export function mayaDecide(cases, sampleId, disposition, { at } = {}) {
+  if (disposition !== DECISION.accepted && disposition !== DECISION.rework) return cases
+  const current = getCase(cases, sampleId)
+  if (!canMayaDecide(current)) return cases
+  if (current.state === disposition && current.disposition?.author === ACTOR.maya) {
+    return cases
   }
+  const stamped = at || nowIso()
+  const next = pushHistory(
+    {
+      ...current,
+      state: disposition,
+      owner: ACTOR.maya,
+      disposition: {
+        kind: disposition,
+        author: ACTOR.maya,
+        authorLabel: ACTOR_META.maya.label,
+        reason: disposition === DECISION.accepted ? 'Accepted by Maya.' : 'Sent for rework by Maya.',
+        at: stamped,
+      },
+      verification: null,
+    },
+    {
+      type: disposition === DECISION.accepted ? 'maya_accept' : 'maya_rework',
+      actor: ACTOR.maya,
+      at: stamped,
+    },
+  )
+  return writeCase(cases, sampleId, next)
+}
+
+/**
+ * Confirm escalation with a selected operator reason. Idempotent: does not
+ * duplicate an existing open escalation case.
+ */
+export function confirmEscalation(cases, sample, { reasonId, note, at } = {}) {
+  const current = getCase(cases, sample.id)
+  if (current.state === DECISION.engineer && current.escalation) return cases
+  if (current.state === DECISION.verification && current.escalation) return cases
+  if (!canMayaDecide(current) && isCompletedState(current.state)) return cases
+  if (!canMayaDecide(current) && current.owner === ACTOR.derek) return cases
+
+  const reasonMeta = ESCALATION_REASONS.find((r) => r.id === reasonId)
+  if (!reasonMeta) return cases
+  if (reasonMeta.requiresNote && !note?.trim()) return cases
+
+  const stamped = at || nowIso()
+  const snapshot = buildEscalationSnapshot(sample, {
+    reasonId,
+    reasonLabel: reasonMeta.label,
+    note,
+    at: stamped,
+  })
+  const next = pushHistory(
+    {
+      ...current,
+      state: DECISION.engineer,
+      owner: ACTOR.derek,
+      escalation: snapshot,
+      disposition: null,
+      verification: current.verification,
+    },
+    {
+      type: 'escalated',
+      actor: ACTOR.maya,
+      reasonId,
+      at: stamped,
+    },
+  )
+  return writeCase(cases, sample.id, next)
+}
+
+/** Derek Accept / Send for rework on an open case he owns. Requires explanation. */
+export function derekResolve(cases, sampleId, disposition, { reason, at } = {}) {
+  if (disposition !== DECISION.accepted && disposition !== DECISION.rework) return cases
+  const explanation = reason?.trim()
+  if (!explanation) return cases
+  const current = getCase(cases, sampleId)
+  if (current.owner !== ACTOR.derek) return cases
+  if (current.state !== DECISION.engineer && current.state !== DECISION.verification) {
+    return cases
+  }
+  const stamped = at || nowIso()
+  const next = pushHistory(
+    {
+      ...current,
+      state: disposition,
+      owner: ACTOR.derek,
+      disposition: {
+        kind: disposition,
+        author: ACTOR.derek,
+        authorLabel: ACTOR_META.derek.label,
+        reason: explanation,
+        at: stamped,
+      },
+      verification: current.verification
+        ? { ...current.verification, open: false }
+        : null,
+    },
+    {
+      type: disposition === DECISION.accepted ? 'derek_accept' : 'derek_rework',
+      actor: ACTOR.derek,
+      at: stamped,
+      reason: explanation,
+    },
+  )
+  return writeCase(cases, sampleId, next)
+}
+
+/** Request verification — stays pending; Derek retains ownership. */
+export function requestVerification(
+  cases,
+  sampleId,
+  { what, method, responsible, at } = {},
+) {
+  const current = getCase(cases, sampleId)
+  if (current.owner !== ACTOR.derek || current.state !== DECISION.engineer) return cases
+  if (!what?.trim() || !method?.trim() || !responsible?.trim()) return cases
+  const stamped = at || nowIso()
+  const request = {
+    what: what.trim(),
+    method: method.trim(),
+    responsible: responsible.trim(),
+    requestedAt: stamped,
+    open: true,
+    returned: null,
+  }
+  const next = pushHistory(
+    {
+      ...current,
+      state: DECISION.verification,
+      verification: request,
+    },
+    {
+      type: 'verification_requested',
+      actor: ACTOR.derek,
+      at: stamped,
+      responsible: request.responsible,
+    },
+  )
+  return writeCase(cases, sampleId, next)
+}
+
+/**
+ * Record returned verification evidence. Note-only leaves measurements alone.
+ * Optional numericalResults are labeled and never replace the original prediction.
+ */
+export function recordVerificationEvidence(
+  cases,
+  sampleId,
+  { source, findings, notes, numericalResults, at } = {},
+) {
+  const current = getCase(cases, sampleId)
+  if (current.owner !== ACTOR.derek || current.state !== DECISION.verification) {
+    return cases
+  }
+  if (!source?.trim() || !findings?.trim()) return cases
+  const stamped = at || nowIso()
+  const returned = {
+    source: source.trim(),
+    findings: findings.trim(),
+    notes: notes?.trim() || '',
+    numericalResults: numericalResults || null,
+    at: stamped,
+  }
+  const next = pushHistory(
+    {
+      ...current,
+      state: DECISION.engineer,
+      verification: {
+        ...current.verification,
+        open: false,
+        returned,
+      },
+    },
+    {
+      type: 'verification_returned',
+      actor: ACTOR.derek,
+      at: stamped,
+      source: returned.source,
+    },
+  )
+  return writeCase(cases, sampleId, next)
+}
+
+/**
+ * Reopen a completed disposition. Only the author may reopen.
+ * Prior disposition remains in history; sample returns to the right pending owner.
+ */
+export function reopenCase(cases, sampleId, actor, { at } = {}) {
+  const current = getCase(cases, sampleId)
+  if (!canReopen(current, actor)) return cases
+  const stamped = at || nowIso()
+  const prior = current.disposition
+  const returnsToEngineer = prior?.author === ACTOR.derek && current.escalation
+  const next = pushHistory(
+    {
+      ...current,
+      state: returnsToEngineer ? DECISION.engineer : DECISION.awaiting,
+      owner: returnsToEngineer ? ACTOR.derek : ACTOR.maya,
+      disposition: null,
+      verification: returnsToEngineer ? current.verification : null,
+    },
+    {
+      type: 'reopened',
+      actor,
+      at: stamped,
+      priorDisposition: prior,
+    },
+  )
+  return writeCase(cases, sampleId, next)
+}
+
+/** Open escalations Derek owns, action-needed first. */
+export function listEscalations(samples, cases = {}) {
+  const open = samples
+    .map((s) => ({ sample: s, caseRecord: getCase(cases, s.id) }))
+    .filter(
+      ({ caseRecord }) =>
+        caseRecord.owner === ACTOR.derek &&
+        (caseRecord.state === DECISION.engineer ||
+          caseRecord.state === DECISION.verification),
+    )
+  const actionNeeded = open.filter((x) => x.caseRecord.state === DECISION.engineer)
+  const waiting = open.filter((x) => x.caseRecord.state === DECISION.verification)
+  return [...actionNeeded, ...waiting]
+}
+
+export function operatorReasonDisplay(escalation) {
+  if (!escalation?.operatorReason || escalation.operatorReason === OPERATOR_REASON_MISSING) {
+    return OPERATOR_REASON_MISSING
+  }
+  return escalation.operatorReason
+}
+
+export function waitingLabel(caseRecord) {
+  if (!caseRecord.escalation?.at) return ''
+  try {
+    const start = new Date(caseRecord.escalation.at).getTime()
+    const mins = Math.max(0, Math.round((Date.now() - start) / 60000))
+    if (mins < 1) return 'Just now'
+    if (mins === 1) return '1 min'
+    if (mins < 60) return `${mins} min`
+    const hrs = Math.round(mins / 60)
+    return hrs === 1 ? '1 hr' : `${hrs} hr`
+  } catch {
+    return ''
+  }
+}
+
+/** Legacy helpers used by older UI during migration — prefer mayaDecide. */
+export function setDecision(cases, id, next) {
+  if (next === DECISION.accepted || next === DECISION.rework) {
+    return mayaDecide(cases, id, next)
+  }
+  return cases
+}
+
+export function clearDecision(cases, id) {
+  return reopenCase(cases, id, getCase(cases, id).disposition?.author || ACTOR.maya)
+}
+
+export function recordEscalation(cases, sample) {
+  return confirmEscalation(cases, sample, {
+    reasonId: 'uncertain',
+    note: '',
+  })
 }
 
 export function RESULT_META_FOR_ENGINEER(status) {
@@ -582,15 +947,17 @@ export function RESULT_META_FOR_ENGINEER(status) {
 /** Presenter notes — not shown in Maya’s operational UI. */
 export const PRESENTER_NOTES = {
   illustrativeData:
-    'Point estimates and specification limits come from the exercise. Uncertainty ranges (REPEAT_TICKS) and lab-coupon scatters are illustrative demo inputs, not production measurements.',
+    'Point estimates and specification limits come from the exercise. Uncertainty ranges (REPEAT_TICKS) and lab-coupon scatters are illustrative demo inputs, not production measurements. Current production models supply point estimates; uncertainty evidence is a proposed future capability.',
   intervalRule:
     'Proposed prototype rules (validate with quality): inclusive specs. Entirely outside interval → Send for rework suggested; all three entirely inside → Accept suggested; otherwise (boundary overlap or missing evidence) → Send to engineer suggested. An outside interval beats engineer. Missing evidence blocks Accept. Point-estimate icons (Above/Below limit, Near limit, ✓) are separate from the sample suggestion. Suggestions never auto-record Maya’s decision.',
   boundaryCases:
     '#203 mass 15.50–15.70 includes the upper boundary and extends above it → Above limit on the point, Send to engineer suggested. #205 mass 14.48–14.65 crosses 14.5 (two decimals in Derek). A valid interval that only touches a boundary from inside remains eligible for Accept.',
+  ownership:
+    'Working assumption pending SirenOpt clarification: Maya owns routine Accept/Rework. After she confirms an escalation, Derek owns resolution and may record the final disposition. Maya can see status but cannot finalize Derek-owned cases. Returning a case to Maya would require an explicit ownership transfer (not implemented). Reopen of a completed record is limited to the disposition author.',
   escalation:
-    'Send to engineer sets Awaiting engineer (unresolved). One in-app escalation record per sample; no email/Slack. Engineer review does not auto accept/rework. Batch completes only when every sample is Accepted or Sent for rework.',
+    'Escalation requires a confirmed operator reason (system finding is a separate field). One in-app case per sample; no email/Slack. Verification: request → awaiting verification → record returned evidence → awaiting engineer → explicit Accept/Rework. Note-only evidence does not change measurements.',
   timeComparison:
-    'For the take-home presentation, contrast layout density offline. Do not put a 20/2-minute switch in the operational app.',
+    'For the take-home presentation, contrast Maya’s fuller vs compact layouts offline. Do not put a 20/2-minute switch in the operational app. Live navigation remains Maya/Derek.',
   assumptions:
-    'Every sample needs an explicit Accept or Send for rework before the line moves on. Session decisions clear on reload. Four state counts always total six.',
+    'Every sample needs an explicit Accept or Send for rework before review is complete. Session state clears on reload. Pending includes awaiting decision, awaiting engineer, and awaiting verification.',
 }
